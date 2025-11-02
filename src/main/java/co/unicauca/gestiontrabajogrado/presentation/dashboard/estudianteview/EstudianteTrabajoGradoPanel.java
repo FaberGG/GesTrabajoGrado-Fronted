@@ -1,9 +1,8 @@
 package co.unicauca.gestiontrabajogrado.presentation.dashboard.estudianteview;
 
 import co.unicauca.gestiontrabajogrado.controller.EstudianteController;
-import co.unicauca.gestiontrabajogrado.domain.model.enumEstadoFormato;
-import co.unicauca.gestiontrabajogrado.dto.FormatoADetalleDTO;
-import co.unicauca.gestiontrabajogrado.dto.ProyectoGradoResponseDTO;
+import co.unicauca.gestiontrabajogrado.dto.ProyectoEstadoDTO;
+import co.unicauca.gestiontrabajogrado.dto.ProyectoHistorialDTO;
 import co.unicauca.gestiontrabajogrado.presentation.common.UIConstants;
 
 import javax.swing.*;
@@ -14,6 +13,7 @@ import java.awt.event.ActionListener;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+
 public class EstudianteTrabajoGradoPanel extends JPanel {
     private EstudianteController controller;
     private EstudianteView parentView;
@@ -39,14 +39,14 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.setBackground(UIConstants.BG_APP);
 
-        // Path breadcrumb mejorado con tamaño aumentado
+        // Path breadcrumb
         JLabel pathLabel = new JLabel("Inicio > Mi Trabajo de Grado");
         pathLabel.setForeground(Color.decode("#3388D1"));
-        pathLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 18)); // Aumentado de 14 a 18
+        pathLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 18));
         pathLabel.setBorder(new EmptyBorder(0, 0, 20, 0));
         topPanel.add(pathLabel, BorderLayout.NORTH);
 
-        // Encabezado con gradiente - ALTURA REDUCIDA
+        // Encabezado con gradiente
         JPanel headerPanel = createGradientHeader();
         topPanel.add(headerPanel, BorderLayout.CENTER);
 
@@ -92,22 +92,22 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         };
 
         headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
-        headerPanel.setPreferredSize(new Dimension(0, 90)); // Reducido de 120 a 90
-        headerPanel.setBorder(new EmptyBorder(20, 20, 20, 20)); // Reducido padding
+        headerPanel.setPreferredSize(new Dimension(0, 90));
+        headerPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
         JLabel titleLabel = new JLabel("Mi trabajo de Grado");
         titleLabel.setForeground(Color.WHITE);
-        titleLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 28)); // Reducido de 32 a 28
+        titleLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 28));
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JLabel subtitleLabel = new JLabel("Seguimiento del proceso");
         subtitleLabel.setForeground(new Color(255, 255, 255, 220));
-        subtitleLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14)); // Reducido de 16 a 14
+        subtitleLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
         subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         headerPanel.add(Box.createVerticalGlue());
         headerPanel.add(titleLabel);
-        headerPanel.add(Box.createVerticalStrut(8)); // Reducido de 10 a 8
+        headerPanel.add(Box.createVerticalStrut(8));
         headerPanel.add(subtitleLabel);
         headerPanel.add(Box.createVerticalGlue());
 
@@ -129,8 +129,8 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
             contentWrapper.setLayout(new BoxLayout(contentWrapper, BoxLayout.Y_AXIS));
             contentWrapper.setBackground(UIConstants.BG_APP);
 
-            // Tarjeta de información del proyecto compacta
-            JPanel projectInfoCard = createCompactProjectInfoCard();
+            // Tarjeta de información del proyecto
+            JPanel projectInfoCard = createProjectInfoCard();
             contentWrapper.add(projectInfoCard);
             contentWrapper.add(Box.createVerticalStrut(35));
 
@@ -141,7 +141,7 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
             centerContainer.add(contentWrapper);
             scrollableContent.add(centerContainer);
         } else {
-            // Mensaje de no proyecto centrado
+            // Mensaje de no proyecto
             JPanel centerContainer = new JPanel(new GridBagLayout());
             centerContainer.setBackground(UIConstants.BG_APP);
 
@@ -154,8 +154,8 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         scrollableContent.repaint();
     }
 
-    private JPanel createCompactProjectInfoCard() {
-        ProyectoGradoResponseDTO proyecto = controller.getProyectoActual();
+    private JPanel createProjectInfoCard() {
+        ProyectoEstadoDTO proyecto = controller.getEstadoProyectoActual();
 
         // Panel con sombra
         JPanel shadowPanel = new JPanel() {
@@ -165,7 +165,6 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
                 Graphics2D g2d = (Graphics2D) g.create();
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                // Sombra suave
                 g2d.setColor(new Color(0, 0, 0, 15));
                 g2d.fillRoundRect(6, 6, getWidth() - 12, getHeight() - 12, 25, 25);
                 g2d.setColor(new Color(0, 0, 0, 10));
@@ -177,7 +176,7 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         shadowPanel.setLayout(new BorderLayout());
         shadowPanel.setOpaque(false);
 
-        // Tarjeta principal con bordes estilizados
+        // Tarjeta principal
         JPanel card = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -185,15 +184,12 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
                 Graphics2D g2d = (Graphics2D) g.create();
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                // Fondo blanco
                 g2d.setColor(Color.WHITE);
                 g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
 
-                // Borde izquierdo grueso (6px)
                 g2d.setColor(Color.decode("#C44B4B"));
                 g2d.fillRoundRect(0, 0, 6, getHeight(), 20, 20);
 
-                // Borde general de 3px
                 g2d.setColor(Color.decode("#C44B4B"));
                 g2d.setStroke(new BasicStroke(3));
                 g2d.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 20, 20);
@@ -202,59 +198,52 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
             }
         };
         card.setOpaque(false);
-        card.setMaximumSize(new Dimension(750, 240)); // Reducido de 280 a 240
+        card.setMaximumSize(new Dimension(750, 240));
         card.setPreferredSize(new Dimension(750, 240));
 
         JPanel contentPanel = new JPanel(new BorderLayout());
         contentPanel.setBackground(Color.WHITE);
-        contentPanel.setBorder(new EmptyBorder(20, 35, 20, 35)); // Reducido padding vertical
+        contentPanel.setBorder(new EmptyBorder(20, 35, 20, 35));
         contentPanel.setOpaque(false);
 
-        // Título del proyecto con icono
+        // Título del proyecto
         JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         titlePanel.setBackground(Color.WHITE);
         titlePanel.setOpaque(false);
 
         JLabel projectIcon = new JLabel("📋");
-        projectIcon.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 16)); // Reducido de 18 a 16
+        projectIcon.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 16));
         projectIcon.setBorder(new EmptyBorder(0, 0, 0, 8));
 
-        JLabel titleLabel = new JLabel(proyecto.titulo);
-        titleLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 16)); // Reducido de 18 a 16
+        JLabel titleLabel = new JLabel(proyecto.getTitulo());
+        titleLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 16));
         titleLabel.setForeground(Color.decode("#2C2C2C"));
 
         titlePanel.add(projectIcon);
         titlePanel.add(titleLabel);
         contentPanel.add(titlePanel, BorderLayout.NORTH);
 
-        // Panel de información mejorado con distribución uniforme
+        // Panel de información
         JPanel mainInfoPanel = new JPanel(new BorderLayout());
         mainInfoPanel.setBackground(Color.WHITE);
         mainInfoPanel.setOpaque(false);
         mainInfoPanel.setBorder(new EmptyBorder(15, 15, 10, 15));
 
-        // Grid superior (2x2) para información básica
+        // Grid 2x2
         JPanel topInfoPanel = new JPanel(new GridLayout(2, 2, 25, 10));
         topInfoPanel.setBackground(Color.WHITE);
         topInfoPanel.setOpaque(false);
 
-        topInfoPanel.add(createCompactInfoItem("📚 Modalidad",
-                proyecto.modalidad != null ? proyecto.modalidad.toString() : "N/A"));
-        topInfoPanel.add(createCompactInfoItem("🎓 Programa",
-                controller.getCurrentUser().getPrograma() != null ?
-                        controller.getCurrentUser().getPrograma().toString() : "N/A"));
+        topInfoPanel.add(createCompactInfoItem("📚 Modalidad", proyecto.getModalidad()));
+        topInfoPanel.add(createCompactInfoItem("🎓 Programa", proyecto.getPrograma()));
         topInfoPanel.add(createCompactInfoItem("👨‍🏫 Director", controller.obtenerNombreDirector()));
         topInfoPanel.add(createCompactInfoItem("👨‍💼 Codirector", controller.obtenerNombreCodirector()));
 
         mainInfoPanel.add(topInfoPanel, BorderLayout.NORTH);
 
-        // Panel de estudiantes centrado
+        // Panel de estudiantes
         String estudiantes = controller.getCurrentUser().getNombres() + " " +
                 controller.getCurrentUser().getApellidos();
-        String estudiante2 = controller.obtenerNombreEstudiante2();
-        if (estudiante2 != null) {
-            estudiantes += ", " + estudiante2;
-        }
 
         JPanel estudiantesPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         estudiantesPanel.setBackground(Color.WHITE);
@@ -280,12 +269,12 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         panel.setOpaque(false);
 
         JLabel labelComponent = new JLabel(label);
-        labelComponent.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 11)); // Reducido de 12 a 11
+        labelComponent.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 11));
         labelComponent.setForeground(Color.decode("#666666"));
         labelComponent.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel valueComponent = new JLabel(value != null ? value : "N/A");
-        valueComponent.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 13)); // Reducido de 14 a 13
+        valueComponent.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 13));
         valueComponent.setForeground(Color.decode("#2C2C2C"));
         valueComponent.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -302,14 +291,14 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         section.setBackground(UIConstants.BG_APP);
         section.setMaximumSize(new Dimension(750, Integer.MAX_VALUE));
 
-        // Estado actual mejorado
+        // Estado actual
         JPanel currentStatePanel = createStylizedCurrentStatePanel();
         section.add(currentStatePanel);
 
         section.add(Box.createVerticalStrut(25));
 
-        // Tarjetas de seguimiento
-        JPanel trackingPanel = createTrackingPanel();
+        // Tarjetas de seguimiento basadas en el historial real
+        JPanel trackingPanel = createTrackingPanelFromHistory();
         section.add(trackingPanel);
 
         return section;
@@ -323,7 +312,6 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         statusLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 16));
         statusLabel.setForeground(Color.decode("#2C2C2C"));
 
-        // Contenedor del estado con diseño moderno
         JPanel statusContainer = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -331,13 +319,11 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
                 Graphics2D g2d = (Graphics2D) g.create();
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                // Gradiente suave para el fondo
                 GradientPaint gradient = new GradientPaint(0, 0, Color.decode("#F7EDED"),
                         0, getHeight(), Color.decode("#FAFAFA"));
                 g2d.setPaint(gradient);
                 g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 25, 25);
 
-                // Borde sutil
                 g2d.setColor(new Color(196, 75, 75, 80));
                 g2d.setStroke(new BasicStroke(1.5f));
                 g2d.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 25, 25);
@@ -364,201 +350,89 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         return panel;
     }
 
-    private JPanel createTrackingPanel() {
+    private JPanel createTrackingPanelFromHistory() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(UIConstants.BG_APP);
 
-        List<TrackingItem> trackingItems = getTrackingItems();
+        ProyectoHistorialDTO historial = controller.getHistorialProyecto();
 
-        for (int i = 0; i < trackingItems.size(); i++) {
-            TrackingItem item = trackingItems.get(i);
-            JPanel trackingCard = createModernTrackingCard(item);
-            panel.add(trackingCard);
+        if (historial != null && historial.getHistorial() != null) {
+            List<ProyectoHistorialDTO.EventoDTO> eventos = historial.getHistorial();
 
-            // Línea conectora más estilizada
-            if (i < trackingItems.size() - 1) {
-                JPanel connectorPanel = createStylizedConnectorLine();
-                panel.add(connectorPanel);
+            for (int i = 0; i < eventos.size(); i++) {
+                ProyectoHistorialDTO.EventoDTO evento = eventos.get(i);
+                JPanel trackingCard = createTrackingCardFromEvento(evento);
+                panel.add(trackingCard);
+
+                if (i < eventos.size() - 1) {
+                    JPanel connectorPanel = createStylizedConnectorLine();
+                    panel.add(connectorPanel);
+                }
+
+                panel.add(Box.createVerticalStrut(8));
             }
-
-            panel.add(Box.createVerticalStrut(8));
+        } else {
+            // Mensaje si no hay historial
+            JLabel noHistoryLabel = new JLabel("No hay eventos registrados aún");
+            noHistoryLabel.setFont(new Font(Font.SANS_SERIF, Font.ITALIC, 14));
+            noHistoryLabel.setForeground(Color.decode("#999999"));
+            panel.add(noHistoryLabel);
         }
 
         return panel;
     }
-    private List<TrackingItem> getTrackingItems() {
-        List<TrackingItem> items = new ArrayList<>();
-        ProyectoGradoResponseDTO proyecto = controller.getProyectoActual();
 
-        // 1. Propuesta enviada
-        items.add(new TrackingItem(
-                "✓", TrackingItem.EstadoIcono.OK,
-                "Propuesta enviada",
-                "El docente ha enviado tu formato A para evaluación",
-                formatearFecha(proyecto.fechaCreacion)
+    private JPanel createTrackingCardFromEvento(ProyectoHistorialDTO.EventoDTO evento) {
+        // Determinar estado del icono basado en el tipo de evento
+        TrackingItem.EstadoIcono estadoIcono = determinarEstadoIcono(evento);
+        String icono = getIconoParaEstado(estadoIcono);
+
+        return createModernTrackingCard(new TrackingItem(
+                icono,
+                estadoIcono,
+                traducirTipoEvento(evento.getTipoEvento()),
+                evento.getDescripcion(),
+                formatearFecha(evento.getFecha())
         ));
-
-        // 2. Obtener el último formato para conocer su estado real
-        FormatoADetalleDTO ultimoFormato = null;
-        try {
-            ultimoFormato = controller.obtenerUltimoFormatoA();
-        } catch (Exception e) {
-            System.err.println("Error obteniendo último formato: " + e.getMessage());
-        }
-
-        // 3. Evaluaciones según el número de intentos
-        for (int intento = 1; intento <= Math.max(proyecto.numeroIntentos, 1); intento++) {
-            TrackingItem.EstadoIcono estadoItem = getEstadoIcono(proyecto, intento, ultimoFormato);
-            String icono = getIconoParaEstado(estadoItem, intento, proyecto);
-            String titulo = getTextoEvaluacion(intento);
-            String descripcion = getDescripcionEvaluacion(intento, estadoItem);
-            String fecha = getFechaEvaluacion(intento, estadoItem);
-
-            items.add(new TrackingItem(icono, estadoItem, titulo, descripcion, fecha));
-
-            // Si el formato actual fue rechazado, agregar tarjeta de rechazo
-            if (ultimoFormato != null &&
-                    intento == proyecto.numeroIntentos &&
-                    ultimoFormato.estado == enumEstadoFormato.RECHAZADO) {
-                items.add(new TrackingItem(
-                        "⚠", TrackingItem.EstadoIcono.BAD,
-                        getTextoRechazo(intento),
-                        ultimoFormato.observaciones != null ? ultimoFormato.observaciones :
-                                "Su propuesta ha sido rechazada y requiere correcciones",
-                        "Completado"
-                ));
-            }
-        }
-
-        // 4. Estado final
-        agregarEstadoFinal(items, proyecto);
-
-        return items;
     }
 
-    private String getIconoParaEstado(TrackingItem.EstadoIcono estado, int intento, ProyectoGradoResponseDTO proyecto) {
+    private TrackingItem.EstadoIcono determinarEstadoIcono(ProyectoHistorialDTO.EventoDTO evento) {
+        String tipoEvento = evento.getTipoEvento();
+        String resultado = evento.getResultado();
+
+        if (tipoEvento.contains("EVALUADO")) {
+            if ("APROBADO".equals(resultado)) {
+                return TrackingItem.EstadoIcono.OK;
+            } else if ("RECHAZADO".equals(resultado)) {
+                return TrackingItem.EstadoIcono.BAD;
+            }
+        } else if (tipoEvento.contains("ENVIADO") || tipoEvento.contains("REENVIADO")) {
+            return TrackingItem.EstadoIcono.IN_PROGRESS;
+        }
+
+        return TrackingItem.EstadoIcono.OK;
+    }
+
+    private String traducirTipoEvento(String tipoEvento) {
+        switch (tipoEvento) {
+            case "FORMATO_A_ENVIADO": return "Formato A enviado";
+            case "FORMATO_A_REENVIADO": return "Formato A reenviado";
+            case "FORMATO_A_EVALUADO": return "Formato A evaluado";
+            case "ANTEPROYECTO_ENVIADO": return "Anteproyecto enviado";
+            case "EVALUADORES_ASIGNADOS": return "Evaluadores asignados";
+            case "ANTEPROYECTO_EVALUADO": return "Anteproyecto evaluado";
+            default: return tipoEvento.replace("_", " ");
+        }
+    }
+
+    private String getIconoParaEstado(TrackingItem.EstadoIcono estado) {
         switch (estado) {
             case OK: return "✓";
             case BAD: return "✗";
             case IN_PROGRESS: return "⏳";
             case NOT_STARTED:
             default: return "○";
-        }
-    }
-
-    private String getDescripcionEvaluacion(int intento, TrackingItem.EstadoIcono estado) {
-        String base = "El coordinador del programa está revisando tu propuesta";
-        if (intento > 1) {
-            base = "El coordinador está revisando tu propuesta actualizada";
-        }
-
-        if (estado == TrackingItem.EstadoIcono.OK) {
-            return "Tu propuesta ha sido revisada y continúa al siguiente paso";
-        } else if (estado == TrackingItem.EstadoIcono.BAD) {
-            return "La evaluación ha sido completada con observaciones";
-        } else if (estado == TrackingItem.EstadoIcono.NOT_STARTED) {
-            return "Esta evaluación se realizará en el futuro";
-        }
-
-        return base;
-    }
-
-    private String getFechaEvaluacion(int intento, TrackingItem.EstadoIcono estado) {
-        switch (estado) {
-            case OK:
-            case BAD: return "Completado";
-            case IN_PROGRESS: return "En proceso...";
-            case NOT_STARTED:
-            default: return "Pendiente";
-        }
-    }
-
-    private String getTextoRechazo(int intento) {
-        switch (intento) {
-            case 1: return "Primer rechazo";
-            case 2: return "Segundo rechazo";
-            case 3: return "Tercer rechazo";
-            default: return "Rechazo";
-        }
-    }
-
-    private void agregarEstadoFinal(List<TrackingItem> items, ProyectoGradoResponseDTO proyecto) {
-        switch (proyecto.estado.toString()) {
-            case "APROBADO":
-                items.add(new TrackingItem(
-                        "🎉", TrackingItem.EstadoIcono.OK,
-                        "Propuesta Aceptada",
-                        "Su propuesta de trabajo de grado ha sido aceptada por el comité",
-                        "Completado"
-                ));
-                break;
-            case "RECHAZADO_DEFINITIVO":
-                items.add(new TrackingItem(
-                        "❌", TrackingItem.EstadoIcono.BAD,
-                        "Rechazo definitivo",
-                        "Su propuesta ha sido rechazada definitivamente después de " + proyecto.numeroIntentos + " intentos",
-                        formatearFecha(java.time.LocalDateTime.now())
-                ));
-                break;
-            case "EN_PROCESO":
-                if (proyecto.numeroIntentos < 3) {
-                    items.add(new TrackingItem(
-                            "○", TrackingItem.EstadoIcono.NOT_STARTED,
-                            "Resultado de la evaluación",
-                            "Pronto recibirás el resultado de la evaluación por correo electrónico",
-                            "Pendiente"
-                    ));
-                }
-                break;
-            case "RECHAZADO":
-                items.add(new TrackingItem(
-                        "○", TrackingItem.EstadoIcono.NOT_STARTED,
-                        "Siguiente evaluación",
-                        "Podrás subir una nueva versión corregida de tu propuesta",
-                        "Pendiente"
-                ));
-                break;
-        }
-    }
-
-
-    private TrackingItem.EstadoIcono getEstadoIcono(ProyectoGradoResponseDTO proyecto, int evaluacion,
-                                                    FormatoADetalleDTO ultimoFormato) {
-        String estadoProyecto = proyecto.estado.toString();
-
-        // Si es la evaluación actual, consultar el estado real del FormatoA
-        if (evaluacion == proyecto.numeroIntentos && ultimoFormato != null) {
-            switch (ultimoFormato.estado) {
-                case APROBADO:
-                    return TrackingItem.EstadoIcono.OK;
-                case RECHAZADO:
-                    return TrackingItem.EstadoIcono.BAD;
-                case PENDIENTE:
-                default:
-                    return TrackingItem.EstadoIcono.IN_PROGRESS;
-            }
-        }
-
-        // Para evaluaciones anteriores
-        if (evaluacion < proyecto.numeroIntentos) {
-            // Las evaluaciones pasadas fueron completadas (ya sea aprobadas o rechazadas)
-            if (estadoProyecto.equals("RECHAZADO") || estadoProyecto.equals("RECHAZADO_DEFINITIVO")) {
-                return TrackingItem.EstadoIcono.BAD;
-            }
-            return TrackingItem.EstadoIcono.OK;
-        }
-
-        // Evaluaciones futuras
-        return TrackingItem.EstadoIcono.NOT_STARTED;
-    }
-
-    private String getTextoEvaluacion(int numeroIntento) {
-        switch (numeroIntento) {
-            case 1: return "Primera evaluación del formato A";
-            case 2: return "Segunda evaluación del formato A";
-            case 3: return "Tercera evaluación del formato A";
-            default: return "Evaluación del formato A";
         }
     }
 
@@ -571,7 +445,6 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
                 Graphics2D g2d = (Graphics2D) g.create();
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                // Sombra más sutil y moderna
                 g2d.setColor(new Color(0, 0, 0, 12));
                 g2d.fillRoundRect(4, 4, getWidth() - 8, getHeight() - 8, 20, 20);
                 g2d.setColor(new Color(0, 0, 0, 8));
@@ -590,7 +463,6 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
                 Graphics2D g2d = (Graphics2D) g.create();
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                // Fondo con gradiente sutil
                 Color backgroundColor = getBackgroundColorForEstado(item.estadoIcono);
                 if (item.estadoIcono == TrackingItem.EstadoIcono.IN_PROGRESS) {
                     GradientPaint gradient = new GradientPaint(0, 0, backgroundColor,
@@ -601,7 +473,6 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
                 }
                 g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
 
-                // Borde sutil
                 g2d.setColor(getBorderColorForEstado(item.estadoIcono));
                 g2d.setStroke(new BasicStroke(1.5f));
                 g2d.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18);
@@ -614,7 +485,6 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
         card.setPreferredSize(new Dimension(0, 100));
 
-        // Icono más grande y centrado
         JLabel iconLabel = new JLabel(item.icono);
         iconLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 24));
         iconLabel.setForeground(getColorForEstado(item.estadoIcono));
@@ -623,7 +493,6 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         iconLabel.setVerticalAlignment(SwingConstants.CENTER);
         card.add(iconLabel, BorderLayout.WEST);
 
-        // Panel de texto mejorado
         JPanel textPanel = new JPanel();
         textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
         textPanel.setOpaque(false);
@@ -709,7 +578,6 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
                 Graphics2D g2d = (Graphics2D) g;
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                // Línea con gradiente
                 GradientPaint gradient = new GradientPaint(0, 0, Color.decode("#E0E0E0"),
                         0, getHeight(), Color.decode("#F0F0F0"));
                 g2d.setPaint(gradient);
@@ -734,7 +602,6 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
     }
 
     private JPanel createStylizedNoProjectPanel() {
-        // Panel con sombra
         JPanel shadowPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -830,7 +697,6 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
             }
         });
 
-        // Efecto hover
         backButton.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 backButton.setBackground(Color.decode("#5A6268"));
