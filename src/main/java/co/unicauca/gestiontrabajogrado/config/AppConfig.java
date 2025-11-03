@@ -30,9 +30,19 @@ public class AppConfig {
     );
 
     /**
-     * Tamaño máximo de archivo PDF en bytes (15 MB)
+     * Tamaño máximo de archivo PDF en bytes (15 MB para anteproyecto)
      */
     public static final long MAX_PDF_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB
+
+    /**
+     * Tamaño máximo de PDF Formato A en bytes (10 MB)
+     */
+    public static final long MAX_FORMATOA_PDF_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+    /**
+     * Tamaño máximo de Carta en bytes (5 MB)
+     */
+    public static final long MAX_CARTA_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
     /**
      * Rutas de Identity según configuración del gateway
@@ -47,7 +57,7 @@ public class AppConfig {
      * Rutas de Submission
      */
     public static final String SUBMISSION_ANTEPROYECTO_PATH = "/api/submissions/anteproyecto";
-    public static final String SUBMISSION_FORMATOA_PATH = "/api/submissions/formato-a";
+    public static final String SUBMISSION_FORMATOA_PATH = "/api/submissions/formatoA";
 
     private AppConfig() {
         // Clase de utilidad, no instanciar
