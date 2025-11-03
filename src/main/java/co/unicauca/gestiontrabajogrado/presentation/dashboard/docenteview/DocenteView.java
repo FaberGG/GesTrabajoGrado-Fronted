@@ -1,8 +1,13 @@
 package co.unicauca.gestiontrabajogrado.presentation.dashboard.docenteview;
 
 import co.unicauca.gestiontrabajogrado.controller.DocenteController;
-
+import co.unicauca.gestiontrabajogrado.domain.model.User;
+import co.unicauca.gestiontrabajogrado.domain.model.enumModalidad;
+import co.unicauca.gestiontrabajogrado.dto.ProyectoGradoRequestDTO;
+import co.unicauca.gestiontrabajogrado.dto.ProyectoGradoResponseDTO;
+import co.unicauca.gestiontrabajogrado.dto.FormatoADetalleDTO;
 import co.unicauca.gestiontrabajogrado.presentation.common.GradientePanel;
+import java.io.File;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -33,7 +38,7 @@ public class DocenteView extends JFrame {
     private User currentUser;
 
     // >>> NUEVO: referencia al controller (para llamar handleCrearProyecto)
-    private DocenteController controller;
+    private DocenteController controller = new DocenteController(); // Inicializar por defecto
 
     // ===== UI raíz =====
     private final JPanel center = new JPanel(new BorderLayout());
@@ -42,6 +47,8 @@ public class DocenteView extends JFrame {
     // ===== Modal =====
     private final ModalLayer modalLayer = new ModalLayer();
     private final SubirPropuestaModal modalSubir = new SubirPropuestaModal();
+    private final SubirAnteproyectoModal modalSubirAnteproyecto = new SubirAnteproyectoModal();
+
 
     // Hooks externos (los dejo, no estorban)
     private Runnable onDescargarPlantilla;
@@ -56,6 +63,13 @@ public class DocenteView extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(1240, 800));
         setLocationRelativeTo(null);
+
+        // Configurar automáticamente el logout para que funcione
+        this.onLogout = () -> {
+            if (controller != null) {
+                controller.handleCerrarSesion();
+            }
+        };
 
         buildUI();
 
@@ -102,8 +116,8 @@ public class DocenteView extends JFrame {
 
     private static String inicialesDe(User u){
         if (u == null) return "CC";
-        String n = (u.getNombres() != null ? u.getNombres() : "").trim();
-        String a = (u.getApellidos()!= null ? u.getApellidos(): "").trim();
+        String n = (u.getNombre() != null ? u.getNombre() : "").trim();
+        String a = (u.getApellido()!= null ? u.getApellido(): "").trim();
         String i1 = n.isEmpty()? "" : n.substring(0,1);
         String i2 = a.isEmpty()? "" : a.substring(0,1);
         String r = (i1 + i2).toUpperCase();
@@ -212,13 +226,15 @@ public class DocenteView extends JFrame {
     private void mostrarMenu(ActionEvent ev){
         JPopupMenu menu = new JPopupMenu();
         JMenuItem mi1 = new JMenuItem("Subir formato A");
-        JMenuItem mi2 = new JMenuItem("Revisar avances del anteproyecto");
+        JMenuItem mi2 = new JMenuItem("Subir Anteproyecto");
         JMenuItem mi3 = new JMenuItem("Emitir evaluación del anteproyecto");
         JMenuItem mi4 = new JMenuItem("Hacer Seguimiento al proyecto de grado");
 
         mi1.addActionListener(e -> abrirModalSubir());
+          mi2.addActionListener(e -> abrirModalSubirAnteproyecto()); 
+          
         menu.add(mi1); menu.add(mi2); menu.add(mi3); menu.add(mi4);
-
+        
         Component src = (Component) ev.getSource();
         menu.show(src, 0, src.getHeight());
     }
@@ -233,9 +249,22 @@ public class DocenteView extends JFrame {
                 boolean exitoso = controller.handleCrearProyecto(req, formatoA, carta);
 
                 if (exitoso) {
+                    // Mostrar mensaje de confirmación
+                    JOptionPane.showMessageDialog(this,
+                            "✅ La propuesta \"" + req.getTitulo() + "\" ha sido guardada exitosamente.\n\n" +
+                            "El proyecto será evaluado por el coordinador.",
+                            "Propuesta Guardada",
+                            JOptionPane.INFORMATION_MESSAGE);
+
                     modalLayer.cerrar();  // ← Solo cierra si fue exitoso
+                } else {
+                    // Mostrar mensaje de error
+                    JOptionPane.showMessageDialog(this,
+                            "❌ No se pudo guardar la propuesta.\n\n" +
+                            "Por favor, verifica los datos e intenta nuevamente.",
+                            "Error al Guardar",
+                            JOptionPane.ERROR_MESSAGE);
                 }
-                // Si NO fue exitoso, el modal permanece abierto
             } else {
                 JOptionPane.showMessageDialog(this,
                         "Controller no conectado", "Error", JOptionPane.ERROR_MESSAGE);
@@ -244,6 +273,28 @@ public class DocenteView extends JFrame {
 
         modalSubir.setOnCancel(modalLayer::cerrar);
         modalLayer.showModal(modalSubir, modalSubir::reset, new Dimension(920, 620));
+    }
+    
+    private void abrirModalSubirAnteproyecto() {
+        // Importar el controller de RF6
+        co.unicauca.gestiontrabajogrado.controller.SubirAnteproyectoController anteproyectoController =
+            new co.unicauca.gestiontrabajogrado.controller.SubirAnteproyectoController();
+
+        modalSubirAnteproyecto.setOnSubmitValid(() -> {
+            // Captura datos según RF6: solo proyectoId y archivo PDF
+            Long proyectoId = modalSubirAnteproyecto.getProyectoId();
+            File archivo = modalSubirAnteproyecto.getArchivoPDF();
+
+            // Delegar al controller la validación y envío
+            anteproyectoController.subirAnteproyecto(proyectoId, archivo, modalSubirAnteproyecto);
+
+            // Si llegamos aquí sin excepción, fue exitoso
+            modalSubirAnteproyecto.limpiar();
+            modalLayer.cerrar();
+        });
+
+        modalSubirAnteproyecto.setOnCancel(modalLayer::cerrar);
+        modalLayer.showModal(modalSubirAnteproyecto, modalSubirAnteproyecto::limpiar, new Dimension(700, 460));
     }
 
 

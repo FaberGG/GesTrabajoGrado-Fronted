@@ -102,8 +102,8 @@ public abstract class BaseSidebarPanel extends JPanel {
                     // Crear la vista de login
                     LoginView loginView = new LoginView();
 
-                    // Crear el controller con el servicio
-                    LoginController loginController = new LoginController(authService, loginView);
+                    // Crear el controller (ya no necesita IAutenticacionService, usa AuthService interno)
+                    LoginController loginController = new LoginController(loginView);
 
                     // Asignar el controller a la vista
                     loginView.setController(loginController);

@@ -1,17 +1,59 @@
 package co.unicauca.gestiontrabajogrado;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-public class Main {
-    public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
+import co.unicauca.gestiontrabajogrado.presentation.auth.LoginView;
+import co.unicauca.gestiontrabajogrado.controller.LoginController;
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
+import javax.swing.*;
+
+/**
+ * Clase principal para ejecutar la aplicación de escritorio
+ * Sistema de Gestión de Trabajo de Grado - Universidad del Cauca
+ *
+ * @author Lyz
+ */
+public class Main {
+
+    public static void main(String[] args) {
+        // Configurar el Look and Feel del sistema operativo
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            System.err.println("No se pudo establecer el Look and Feel: " + e.getMessage());
+            // Continuar con el Look and Feel por defecto
         }
+
+        // Ejecutar en el hilo de eventos de Swing
+        SwingUtilities.invokeLater(() -> {
+            try {
+                // Crear el controlador de login
+                LoginController loginController = new LoginController();
+
+                // Crear y mostrar la vista de login
+                LoginView loginView = new LoginView(loginController);
+                loginView.setLocationRelativeTo(null); // Centrar en la pantalla
+                loginView.setVisible(true);
+
+                System.out.println("=================================================");
+                System.out.println("  Sistema de Gestión de Trabajo de Grado");
+                System.out.println("  Universidad del Cauca");
+                System.out.println("=================================================");
+                System.out.println("Aplicación iniciada correctamente.");
+                System.out.println("Por favor, inicie sesión en la ventana.");
+                System.out.println();
+                System.out.println("Nota: Esta versión usa datos de prueba.");
+                System.out.println("Para conectar con los microservicios, configure");
+                System.out.println("las URLs en el archivo de configuración.");
+                System.out.println("=================================================");
+
+            } catch (Exception e) {
+                System.err.println("Error al iniciar la aplicación: " + e.getMessage());
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null,
+                        "Error al iniciar la aplicación:\n" + e.getMessage(),
+                        "Error de Inicio",
+                        JOptionPane.ERROR_MESSAGE);
+                System.exit(1);
+            }
+        });
     }
 }

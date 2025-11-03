@@ -145,16 +145,16 @@ public class SubirPropuestaModal extends JPanel {
     // ========== MÉTODO PRINCIPAL: Construir DTO ==========
     public ProyectoGradoRequestDTO construirDTO() {
         ProyectoGradoRequestDTO dto = new ProyectoGradoRequestDTO();
-        dto.titulo = tfTitulo.getText().trim();
-        dto.modalidad = toEnumModalidad(getModalidad());
-        dto.objetivoGeneral = taObjGeneral.getText().trim();
-        dto.objetivosEspecificos = taObjEspecificos.getText().trim();
+        dto.setTitulo(tfTitulo.getText().trim());
+        dto.setModalidad(toEnumModalidad(getModalidad()));
+        dto.setObjetivoGeneral(taObjGeneral.getText().trim());
+        dto.setObjetivosEspecificos(taObjEspecificos.getText().trim());
 
         // Helper para parsear IDs de forma segura
-        dto.directorId = parseIdSafely(tfDirId);
-        dto.codirectorId = parseIdSafely(tfCoDirId);
-        dto.estudiante1Id = parseIdSafely(tfEstudiante1Id);
-        dto.estudiante2Id = parseIdSafely(tfEstudiante2Id);
+        dto.setDirectorId(parseIdSafelyLong(tfDirId));
+        dto.setCodirectorId(parseIdSafelyLong(tfCoDirId));
+        dto.setEstudiante1Id(parseIdSafelyLong(tfEstudiante1Id));
+        dto.setEstudiante2Id(parseIdSafelyLong(tfEstudiante2Id));
 
         return dto;
     }
@@ -167,6 +167,19 @@ public class SubirPropuestaModal extends JPanel {
 
         try {
             return Integer.parseInt(text.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private Long parseIdSafelyLong(JTextField field) {
+        if (field == null) return null;
+
+        String text = field.getText();
+        if (text == null || text.trim().isEmpty()) return null;
+
+        try {
+            return Long.parseLong(text.trim());
         } catch (NumberFormatException e) {
             return null;
         }

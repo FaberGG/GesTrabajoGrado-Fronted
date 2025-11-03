@@ -219,7 +219,7 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         projectIcon.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 16)); // Reducido de 18 a 16
         projectIcon.setBorder(new EmptyBorder(0, 0, 0, 8));
 
-        JLabel titleLabel = new JLabel(proyecto.titulo);
+        JLabel titleLabel = new JLabel(proyecto.getTitulo());
         titleLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 16)); // Reducido de 18 a 16
         titleLabel.setForeground(Color.decode("#2C2C2C"));
 
@@ -239,18 +239,18 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         topInfoPanel.setOpaque(false);
 
         topInfoPanel.add(createCompactInfoItem("📚 Modalidad",
-                proyecto.modalidad != null ? proyecto.modalidad.toString() : "N/A"));
+                proyecto.getModalidad() != null ? proyecto.getModalidad().toString() : "N/A"));
         topInfoPanel.add(createCompactInfoItem("🎓 Programa",
-                controller.getCurrentUser().getPrograma() != null ?
-                        controller.getCurrentUser().getPrograma().toString() : "N/A"));
+                controller.getCurrentUser().getNombre() != null ?
+                        "Ingeniería de Sistemas" : "N/A"));
         topInfoPanel.add(createCompactInfoItem("👨‍🏫 Director", controller.obtenerNombreDirector()));
         topInfoPanel.add(createCompactInfoItem("👨‍💼 Codirector", controller.obtenerNombreCodirector()));
 
         mainInfoPanel.add(topInfoPanel, BorderLayout.NORTH);
 
         // Panel de estudiantes centrado
-        String estudiantes = controller.getCurrentUser().getNombres() + " " +
-                controller.getCurrentUser().getApellidos();
+        String estudiantes = controller.getCurrentUser().getNombre() + " " +
+                controller.getCurrentUser().getApellido();
         String estudiante2 = controller.obtenerNombreEstudiante2();
         if (estudiante2 != null) {
             estudiantes += ", " + estudiante2;
@@ -396,7 +396,7 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
                 "✓", TrackingItem.EstadoIcono.OK,
                 "Propuesta enviada",
                 "El docente ha enviado tu formato A para evaluación",
-                formatearFecha(proyecto.fechaCreacion)
+                formatearFecha(convertDateToLocalDateTime(proyecto.getFechaCreacion()))
         ));
 
         // 2. Obtener el último formato para conocer su estado real
@@ -408,7 +408,7 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         }
 
         // 3. Evaluaciones según el número de intentos
-        for (int intento = 1; intento <= Math.max(proyecto.numeroIntentos, 1); intento++) {
+        for (int intento = 1; intento <= Math.max(proyecto.getNumeroIntentos(), 1); intento++) {
             TrackingItem.EstadoIcono estadoItem = getEstadoIcono(proyecto, intento, ultimoFormato);
             String icono = getIconoParaEstado(estadoItem, intento, proyecto);
             String titulo = getTextoEvaluacion(intento);
@@ -419,12 +419,12 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
 
             // Si el formato actual fue rechazado, agregar tarjeta de rechazo
             if (ultimoFormato != null &&
-                    intento == proyecto.numeroIntentos &&
-                    ultimoFormato.estado == enumEstadoFormato.RECHAZADO) {
+                    intento == proyecto.getNumeroIntentos() &&
+                    ultimoFormato.getEstado() == enumEstadoFormato.RECHAZADO) {
                 items.add(new TrackingItem(
                         "⚠", TrackingItem.EstadoIcono.BAD,
                         getTextoRechazo(intento),
-                        ultimoFormato.observaciones != null ? ultimoFormato.observaciones :
+                        ultimoFormato.getObservaciones() != null ? ultimoFormato.getObservaciones() :
                                 "Su propuesta ha sido rechazada y requiere correcciones",
                         "Completado"
                 ));
@@ -484,7 +484,7 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
     }
 
     private void agregarEstadoFinal(List<TrackingItem> items, ProyectoGradoResponseDTO proyecto) {
-        switch (proyecto.estado.toString()) {
+        switch (proyecto.getEstado().toString()) {
             case "APROBADO":
                 items.add(new TrackingItem(
                         "🎉", TrackingItem.EstadoIcono.OK,
@@ -497,12 +497,12 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
                 items.add(new TrackingItem(
                         "❌", TrackingItem.EstadoIcono.BAD,
                         "Rechazo definitivo",
-                        "Su propuesta ha sido rechazada definitivamente después de " + proyecto.numeroIntentos + " intentos",
+                        "Su propuesta ha sido rechazada definitivamente después de " + proyecto.getNumeroIntentos() + " intentos",
                         formatearFecha(java.time.LocalDateTime.now())
                 ));
                 break;
             case "EN_PROCESO":
-                if (proyecto.numeroIntentos < 3) {
+                if (proyecto.getNumeroIntentos() < 3) {
                     items.add(new TrackingItem(
                             "○", TrackingItem.EstadoIcono.NOT_STARTED,
                             "Resultado de la evaluación",
@@ -525,11 +525,11 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
 
     private TrackingItem.EstadoIcono getEstadoIcono(ProyectoGradoResponseDTO proyecto, int evaluacion,
                                                     FormatoADetalleDTO ultimoFormato) {
-        String estadoProyecto = proyecto.estado.toString();
+        String estadoProyecto = proyecto.getEstado().toString();
 
         // Si es la evaluación actual, consultar el estado real del FormatoA
-        if (evaluacion == proyecto.numeroIntentos && ultimoFormato != null) {
-            switch (ultimoFormato.estado) {
+        if (evaluacion == proyecto.getNumeroIntentos() && ultimoFormato != null) {
+            switch (ultimoFormato.getEstado()) {
                 case APROBADO:
                     return TrackingItem.EstadoIcono.OK;
                 case RECHAZADO:
@@ -541,7 +541,7 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         }
 
         // Para evaluaciones anteriores
-        if (evaluacion < proyecto.numeroIntentos) {
+        if (evaluacion < proyecto.getNumeroIntentos()) {
             // Las evaluaciones pasadas fueron completadas (ya sea aprobadas o rechazadas)
             if (estadoProyecto.equals("RECHAZADO") || estadoProyecto.equals("RECHAZADO_DEFINITIVO")) {
                 return TrackingItem.EstadoIcono.BAD;
@@ -850,6 +850,13 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         if (fecha == null) return "Fecha no disponible";
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
         return fecha.format(formatter);
+    }
+
+    private java.time.LocalDateTime convertDateToLocalDateTime(java.util.Date date) {
+        if (date == null) return null;
+        return date.toInstant()
+                .atZone(java.time.ZoneId.systemDefault())
+                .toLocalDateTime();
     }
 
     // Clase helper para items de seguimiento

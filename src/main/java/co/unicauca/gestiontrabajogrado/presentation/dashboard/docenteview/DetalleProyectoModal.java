@@ -23,7 +23,7 @@ public class DetalleProyectoModal extends JPanel {
     private static final Font F_LABEL = new Font("SansSerif", Font.BOLD, 13);
 
     // Estado del modal
-    private Integer proyectoId;
+    private Long proyectoId;
     private ProyectoGradoResponseDTO proyecto;
     private FormatoADetalleDTO ultimoFormato;
 
@@ -304,39 +304,39 @@ public class DetalleProyectoModal extends JPanel {
     // ========== Cargar datos del proyecto ==========
 
     public void cargarProyecto(ProyectoGradoResponseDTO proyecto, FormatoADetalleDTO formato) {
-        this.proyectoId = proyecto.id;
+        this.proyectoId = proyecto.getId();
         this.proyecto = proyecto;
         this.ultimoFormato = formato;
 
         // Información general
-        lblTitulo.setText(proyecto.titulo != null ? proyecto.titulo : "Sin título");
-        lblModalidad.setText(proyecto.modalidad != null ? proyecto.modalidad.toString() : "Sin modalidad");
+        lblTitulo.setText(proyecto.getTitulo() != null ? proyecto.getTitulo() : "Sin título");
+        lblModalidad.setText(proyecto.getModalidad() != null ? proyecto.getModalidad().toString() : "Sin modalidad");
 
         // Estado con color
-        if (proyecto.estado != null) {
-            lblEstado.setText(obtenerTextoEstado(proyecto.estado));
-            lblEstado.setForeground(obtenerColorEstado(proyecto.estado));
+        if (proyecto.getEstado() != null) {
+            lblEstado.setText(obtenerTextoEstado(proyecto.getEstado()));
+            lblEstado.setForeground(obtenerColorEstado(proyecto.getEstado()));
             lblEstado.setFont(F_BODY.deriveFont(Font.BOLD));
         }
 
-        lblIntentos.setText("Intento " + (proyecto.numeroIntentos != null ? proyecto.numeroIntentos : 0) + " de 3");
-        if (proyecto.numeroIntentos != null && proyecto.numeroIntentos >= 3) {
+        lblIntentos.setText("Intento " + (proyecto.getNumeroIntentos() != null ? proyecto.getNumeroIntentos() : 0) + " de 3");
+        if (proyecto.getNumeroIntentos() != null && proyecto.getNumeroIntentos() >= 3) {
             lblIntentos.setForeground(C_ROJO_1);
         }
 
         // Participantes
-        lblDirector.setText("ID: " + (proyecto.directorId != null ? proyecto.directorId : "No asignado"));
-        lblCodirector.setText("ID: " + (proyecto.codirectorId != null ? proyecto.codirectorId : "No asignado"));
-        lblEstudiante1.setText("ID: " + (proyecto.estudiante1Id != null ? proyecto.estudiante1Id : "No asignado"));
-        lblEstudiante2.setText("ID: " + (proyecto.estudiante2Id != null ? proyecto.estudiante2Id : "No asignado"));
+        lblDirector.setText("ID: " + (proyecto.getDirectorId() != null ? proyecto.getDirectorId() : "No asignado"));
+        lblCodirector.setText("ID: " + (proyecto.getCodirectorId() != null ? proyecto.getCodirectorId() : "No asignado"));
+        lblEstudiante1.setText("ID: " + (proyecto.getEstudiante1Id() != null ? proyecto.getEstudiante1Id() : "No asignado"));
+        lblEstudiante2.setText("ID: " + (proyecto.getEstudiante2Id() != null ? proyecto.getEstudiante2Id() : "No asignado"));
 
         // Objetivos
-        taObjGeneral.setText(proyecto.objetivoGeneral != null ? proyecto.objetivoGeneral : "No especificado");
-        taObjEspecificos.setText(proyecto.objetivosEspecificos != null ? proyecto.objetivosEspecificos : "No especificados");
+        taObjGeneral.setText(proyecto.getObjetivoGeneral() != null ? proyecto.getObjetivoGeneral() : "No especificado");
+        taObjEspecificos.setText(proyecto.getObjetivosEspecificos() != null ? proyecto.getObjetivosEspecificos() : "No especificados");
 
         // Observaciones
-        if (formato != null && formato.observaciones != null && !formato.observaciones.trim().isEmpty()) {
-            taObservaciones.setText(formato.observaciones);
+        if (formato != null && formato.getObservaciones() != null && !formato.getObservaciones().trim().isEmpty()) {
+            taObservaciones.setText(formato.getObservaciones());
             taObservaciones.setForeground(Color.BLACK);
         } else {
             taObservaciones.setText("No hay observaciones del coordinador.");
@@ -344,15 +344,15 @@ public class DetalleProyectoModal extends JPanel {
         }
 
         // Controlar visibilidad de sección "Subir nueva versión"
-        boolean puedeSubir = proyecto.estado == enumEstadoProyecto.RECHAZADO
-                && proyecto.numeroIntentos != null
-                && proyecto.numeroIntentos < 3;
+        boolean puedeSubir = proyecto.getEstado() == enumEstadoProyecto.RECHAZADO
+                && proyecto.getNumeroIntentos() != null
+                && proyecto.getNumeroIntentos() < 3;
 
         panelNuevaVersion.setVisible(puedeSubir);
         btnSubirVersion.setVisible(puedeSubir);
 
         if (!puedeSubir) {
-            if (proyecto.numeroIntentos != null && proyecto.numeroIntentos >= 3) {
+            if (proyecto.getNumeroIntentos() != null && proyecto.getNumeroIntentos() >= 3) {
                 JOptionPane.showMessageDialog(this,
                         "Has alcanzado el máximo de 3 intentos.\nNo puedes subir más versiones de este proyecto.",
                         "Máximo de intentos alcanzado", JOptionPane.WARNING_MESSAGE);
@@ -360,7 +360,7 @@ public class DetalleProyectoModal extends JPanel {
         }
 
         // Configurar disponibilidad de la carta según modalidad
-        boolean reqCarta = proyecto.modalidad == enumModalidad.PRACTICA_PROFESIONAL;
+        boolean reqCarta = proyecto.getModalidad() == enumModalidad.PRACTICA_PROFESIONAL;
         dfNuevaCarta.setEnabled(reqCarta);
         if (reqCarta) {
             dfNuevaCarta.setLine2("Solo un archivo PDF - OBLIGATORIO para Práctica profesional");
@@ -429,7 +429,7 @@ public class DetalleProyectoModal extends JPanel {
         }
 
         // Validar carta si es práctica profesional
-        if (proyecto != null && proyecto.modalidad == enumModalidad.PRACTICA_PROFESIONAL) {
+        if (proyecto != null && proyecto.getModalidad() == enumModalidad.PRACTICA_PROFESIONAL) {
             if (!dfNuevaCarta.hasFile()) {
                 JOptionPane.showMessageDialog(this,
                         "Debes adjuntar la nueva Carta de Aceptación para Práctica profesional.",
@@ -459,7 +459,7 @@ public class DetalleProyectoModal extends JPanel {
         return taObjEspecificos.getText().trim();
     }
 
-    public Integer getProyectoId() {
+    public Long getProyectoId() {
         return proyectoId;
     }
 

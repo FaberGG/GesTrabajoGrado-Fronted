@@ -1,7 +1,9 @@
 package co.unicauca.gestiontrabajogrado.presentation.dashboard.coordinadorview;
 
 import co.unicauca.gestiontrabajogrado.controller.CoordinadorController;
-
+import co.unicauca.gestiontrabajogrado.domain.model.enumEstadoFormato;
+import co.unicauca.gestiontrabajogrado.dto.ProyectoGradoResponseDTO;
+import co.unicauca.gestiontrabajogrado.dto.DetallePropuestaDTO;
 import co.unicauca.gestiontrabajogrado.presentation.common.HeaderPanel;
 
 import javax.swing.*;
@@ -503,12 +505,11 @@ public class CoordinadorView extends JFrame {
             ).setVisible(true);
         } else {
             // Mostrar detalles - delegar al controlador
-            CoordinadorController.DetallePropuestaDTO detalle =
-                    controller.obtenerDetallePropuesta(propuesta.proyectoId());
+            Object detalle = controller.obtenerDetallePropuesta(propuesta.proyectoId());
 
             new DetallePropuestaDialog(
                     this,
-                    detalle.formatearParaVista(),
+                    detalle != null ? detalle.toString() : "Sin detalles",
                     propuesta
             ).setVisible(true);
         }

@@ -252,7 +252,7 @@ public class EstudianteDashboardPanel extends JPanel {
         userIcon.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 20)); // Reducido de 24 a 20
         userIcon.setBorder(new EmptyBorder(0, 0, 0, 12));
 
-        JLabel nameLabel = new JLabel(currentUser.getNombres() + " " + currentUser.getApellidos());
+        JLabel nameLabel = new JLabel(currentUser.getNombre() + " " + currentUser.getApellido());
         nameLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 18)); // Reducido de 20 a 18
         nameLabel.setForeground(Color.decode("#2C2C2C"));
 
@@ -266,8 +266,7 @@ public class EstudianteDashboardPanel extends JPanel {
         JPanel gridPanel = new JPanel(new GridLayout(2, 2, 25, 12)); // Mantenido espacio horizontal, reducido vertical
         gridPanel.setBackground(Color.WHITE);
 
-        gridPanel.add(createInfoItem("Programa",
-                currentUser.getPrograma() != null ? currentUser.getPrograma().toString() : "N/A"));
+        gridPanel.add(createInfoItem("Programa", "Ingeniería de Sistemas"));
         gridPanel.add(createInfoItem("Identificación",
                 currentUser.getId() != null ? currentUser.getId().toString() : "N/A"));
         gridPanel.add(createInfoItem("Email",

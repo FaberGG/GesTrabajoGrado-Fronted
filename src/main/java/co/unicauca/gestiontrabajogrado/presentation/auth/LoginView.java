@@ -671,6 +671,12 @@ public class LoginView extends JFrame {
                 co.unicauca.gestiontrabajogrado.domain.service.IAutenticacionService tempService = 
                     new co.unicauca.gestiontrabajogrado.domain.service.IAutenticacionService() {
                         @Override
+                        public boolean autenticar(String email, String password) {
+                            System.out.println("Mock autenticar: " + email);
+                            return true;
+                        }
+
+                        @Override
                         public co.unicauca.gestiontrabajogrado.domain.model.User register(
                             co.unicauca.gestiontrabajogrado.domain.model.User user, String plainPassword) {
                             System.out.println("Mock register: " + user.getEmail());
@@ -683,17 +689,23 @@ public class LoginView extends JFrame {
                             System.out.println("Mock login: " + email);
                             // Crear usuario ficticio para pruebas
                             return new co.unicauca.gestiontrabajogrado.domain.model.User(
-                                1, // Cambié de 1L a 1 (Integer en lugar de Long)
-                                "Test", "User", "123456789",
-                                co.unicauca.gestiontrabajogrado.domain.model.enumProgram.INGENIERIA_DE_SISTEMAS,
-                                co.unicauca.gestiontrabajogrado.domain.model.enumRol.ESTUDIANTE,
-                                email, null);
+                                1L,
+                                "Test",
+                                "User",
+                                email,
+                                co.unicauca.gestiontrabajogrado.domain.model.enumRol.ESTUDIANTE);
+                        }
+
+                        @Override
+                        public void cerrarSesion() {
+                            System.out.println("Mock cerrar sesión");
                         }
                     };
 
                 LoginView loginView = new LoginView();
-                co.unicauca.gestiontrabajogrado.controller.LoginController loginController = 
-                    new co.unicauca.gestiontrabajogrado.controller.LoginController(tempService, loginView);
+                // LoginController ya no necesita IAutenticacionService, usa AuthService interno
+                co.unicauca.gestiontrabajogrado.controller.LoginController loginController =
+                    new co.unicauca.gestiontrabajogrado.controller.LoginController(loginView);
                 loginView.setController(loginController);
                 loginView.setVisible(true);
                 

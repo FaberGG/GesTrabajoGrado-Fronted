@@ -64,7 +64,7 @@ public class AnteproyectoService {
             throws IOException, InterruptedException {
 
         AsignarEvaluadoresRequestDTO requestDto =
-                new AsignarEvaluadoresRequestDTO(evaluador1Id, evaluador2Id);
+                new AsignarEvaluadoresRequestDTO(Long.valueOf(proyectoId), Long.valueOf(evaluador1Id), Long.valueOf(evaluador2Id));
 
         String jsonBody = gson.toJson(requestDto);
 
