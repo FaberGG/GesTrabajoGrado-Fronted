@@ -109,6 +109,50 @@ public class AnteproyectoService {
     }
 
     /**
+     * Sube un anteproyecto para un proyecto específico
+     * POST /api/submissions/anteproyecto
+     * 
+     * Requisito #6: El docente sube el anteproyecto después de la aprobación del Formato A.
+     * El sistema debe guardar la fecha y enviar notificación al jefe de departamento.
+     * 
+     * @param proyectoId ID del proyecto
+     * @param archivo Archivo del anteproyecto (PDF)
+     * @return true si fue exitoso
+     */
+    public boolean subirAnteproyecto(Integer proyectoId, java.io.File archivo) throws IOException, InterruptedException {
+        // En la implementación real, este método enviaría el archivo al backend
+        // usando multipart/form-data
+        
+        // Por ahora, solo creamos el DTO con los datos básicos
+        co.unicauca.gestiontrabajogrado.dto.AnteproyectoRequestDTO requestDto = 
+            new co.unicauca.gestiontrabajogrado.dto.AnteproyectoRequestDTO();
+        requestDto.proyectoId = proyectoId;
+        requestDto.fechaSubida = new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date());
+        
+        String jsonBody = gson.toJson(requestDto);
+        
+        // TODO: Implementar el envío del archivo usando multipart/form-data
+        // cuando se conecte con el gateway
+        
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/submissions/anteproyecto"))
+                .header("Authorization", "Bearer " + authToken)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() == 200 || response.statusCode() == 201) {
+            return true;
+        } else if (response.statusCode() == 401) {
+            throw new IOException("Sesión expirada. Por favor inicie sesión nuevamente.");
+        } else {
+            throw new IOException("Error al subir anteproyecto: " + response.body());
+        }
+    }
+
+    /**
      * DTO interno para evaluadores
      */
     public static class EvaluadorDTO {

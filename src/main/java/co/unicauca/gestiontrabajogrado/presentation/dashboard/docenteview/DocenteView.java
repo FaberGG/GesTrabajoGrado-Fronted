@@ -46,6 +46,7 @@ public class DocenteView extends JFrame {
     // ===== Modal =====
     private final ModalLayer modalLayer = new ModalLayer();
     private final SubirPropuestaModal modalSubir = new SubirPropuestaModal();
+    private final SubirAnteproyectoModal modalAnteproyecto = new SubirAnteproyectoModal();
 
     // Hooks externos (los dejo, no estorban)
     private Runnable onDescargarPlantilla;
@@ -216,12 +217,14 @@ public class DocenteView extends JFrame {
     private void mostrarMenu(ActionEvent ev){
         JPopupMenu menu = new JPopupMenu();
         JMenuItem mi1 = new JMenuItem("Subir formato A");
-        JMenuItem mi2 = new JMenuItem("Revisar avances del anteproyecto");
-        JMenuItem mi3 = new JMenuItem("Emitir evaluación del anteproyecto");
-        JMenuItem mi4 = new JMenuItem("Hacer Seguimiento al proyecto de grado");
+        JMenuItem mi2 = new JMenuItem("Subir anteproyecto");
+        JMenuItem mi3 = new JMenuItem("Revisar avances del anteproyecto");
+        JMenuItem mi4 = new JMenuItem("Emitir evaluación del anteproyecto");
+        JMenuItem mi5 = new JMenuItem("Hacer Seguimiento al proyecto de grado");
 
         mi1.addActionListener(e -> abrirModalSubir());
-        menu.add(mi1); menu.add(mi2); menu.add(mi3); menu.add(mi4);
+        mi2.addActionListener(e -> abrirModalAnteproyecto());
+        menu.add(mi1); menu.add(mi2); menu.add(mi3); menu.add(mi4); menu.add(mi5);
 
         Component src = (Component) ev.getSource();
         menu.show(src, 0, src.getHeight());
@@ -250,6 +253,71 @@ public class DocenteView extends JFrame {
         modalLayer.showModal(modalSubir, modalSubir::reset, new Dimension(920, 620));
     }
 
+    /**
+     * Abre el modal para subir el anteproyecto de un proyecto aprobado
+     * 
+     * Requisito #6: El docente puede subir el anteproyecto después de que el Formato A
+     * haya sido aprobado
+     */
+    private void abrirModalAnteproyecto() {
+        // Primero, obtener la lista de proyectos del docente y filtrar los que tienen Formato A aprobado
+        // Por ahora, mostramos un diálogo de selección simple
+        
+        // TODO: En una implementación real, el controller debería proporcionar una lista
+        // de proyectos con Formato A aprobado
+        
+        // Por ahora, simulamos mostrando un mensaje
+        String[] opciones = {"Proyecto 1 - Aprobado", "Proyecto 2 - Aprobado"};
+        String seleccion = (String) JOptionPane.showInputDialog(
+                this,
+                "Seleccione el proyecto para el cual desea subir el anteproyecto:",
+                "Seleccionar Proyecto",
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                opciones,
+                opciones[0]);
+
+        if (seleccion != null) {
+            // Aquí se cargaría el proyecto real desde el controller
+            // Por ahora creamos un proyecto de ejemplo
+            ProyectoGradoResponseDTO proyectoEjemplo = new ProyectoGradoResponseDTO();
+            proyectoEjemplo.id = 1;
+            proyectoEjemplo.titulo = seleccion.split(" - ")[0];
+            proyectoEjemplo.modalidad = enumModalidad.INVESTIGACION;
+            proyectoEjemplo.anteproyectoSubido = false;
+
+            modalAnteproyecto.cargarProyecto(proyectoEjemplo);
+
+            modalAnteproyecto.setOnSubmit(() -> {
+                if (controller != null) {
+                    Integer proyectoId = modalAnteproyecto.getProyectoId();
+                    java.io.File archivo = modalAnteproyecto.getArchivoAnteproyecto();
+
+                    boolean exitoso = controller.handleSubirAnteproyecto(proyectoId, archivo);
+
+                    if (exitoso) {
+                        JOptionPane.showMessageDialog(this,
+                                "Anteproyecto subido exitosamente.\n" +
+                                "Se ha notificado al jefe de departamento.",
+                                "Éxito",
+                                JOptionPane.INFORMATION_MESSAGE);
+                        modalLayer.cerrar();
+                    } else {
+                        JOptionPane.showMessageDialog(this,
+                                "Error al subir el anteproyecto. Intente nuevamente.",
+                                "Error",
+                                JOptionPane.ERROR_MESSAGE);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                            "Controller no conectado", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+
+            modalAnteproyecto.setOnCancel(modalLayer::cerrar);
+            modalLayer.showModal(modalAnteproyecto, modalAnteproyecto::reset, new Dimension(700, 600));
+        }
+    }
 
     // --- mapeo seguro de las 3 modalidades del combo a tu enum del dominio ---
     private static enumModalidad toEnumModalidad(String etiqueta){
