@@ -1,7 +1,11 @@
 package co.unicauca.gestiontrabajogrado.presentation.dashboard.docenteview;
 
 import co.unicauca.gestiontrabajogrado.controller.DocenteController;
-
+import co.unicauca.gestiontrabajogrado.domain.model.User;
+import co.unicauca.gestiontrabajogrado.domain.model.enumModalidad;
+import co.unicauca.gestiontrabajogrado.dto.FormatoADetalleDTO;
+import co.unicauca.gestiontrabajogrado.dto.ProyectoGradoRequestDTO;
+import co.unicauca.gestiontrabajogrado.dto.ProyectoGradoResponseDTO;
 import co.unicauca.gestiontrabajogrado.presentation.common.GradientePanel;
 
 import javax.swing.*;
