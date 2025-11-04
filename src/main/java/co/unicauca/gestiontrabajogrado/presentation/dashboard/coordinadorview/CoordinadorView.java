@@ -1,9 +1,8 @@
 package co.unicauca.gestiontrabajogrado.presentation.dashboard.coordinadorview;
 
-import co.unicauca.gestiontrabajogrado.controller.CoordinadorController;
-import co.unicauca.gestiontrabajogrado.domain.model.enumEstadoFormato;
-import co.unicauca.gestiontrabajogrado.dto.ProyectoGradoResponseDTO;
-import co.unicauca.gestiontrabajogrado.dto.DetallePropuestaDTO;
+import co.unicauca.gestiontrabajogrado.application.controllers.CoordinadorController;
+import co.unicauca.gestiontrabajogrado.application.session.SessionManager;
+import co.unicauca.gestiontrabajogrado.domain.dto.identity.UserProfile;
 import co.unicauca.gestiontrabajogrado.presentation.common.HeaderPanel;
 
 import javax.swing.*;
@@ -16,13 +15,14 @@ import java.awt.event.MouseEvent;
 import java.util.List;
 
 /**
- * Vista del panel del Coordinador.
- * Solo maneja la presentación visual, delegando toda la lógica al controlador.
+ * Vista del panel del Coordinador (RF3)
+ * Migrada para usar microservicios a través del API Gateway
  */
 public class CoordinadorView extends JFrame {
 
     // ----------------- Controlador -----------------
     private CoordinadorController controller;
+    private final SessionManager sessionManager;
 
     // ----------------- Navegación -------------------
     private final CardLayout cards = new CardLayout();
@@ -35,14 +35,13 @@ public class CoordinadorView extends JFrame {
     private JCheckBox cbSoloPendientes;
     private JLabel lblPendientes;
     private JPopupMenu menuPopup;
-    public CoordinadorView() {
-        this(null); // Llama al constructor principal con null
-    }
-    public CoordinadorView(CoordinadorController controller) {
-        super("Panel Coordinador - Gestión de Trabajos de Grado");
-        this.controller = controller;
 
-        // Solo asociar si el controller no es null
+    public CoordinadorView() {
+        super("Panel Coordinador - Gestión de Trabajos de Grado");
+        this.controller = new CoordinadorController();
+        this.sessionManager = SessionManager.getInstance();
+
+        // Asociar controlador
         if (this.controller != null) {
             this.controller.setView(this);
         }
@@ -50,6 +49,9 @@ public class CoordinadorView extends JFrame {
         configurarVentana();
         construirUI();
         mostrar(CARD_HOME);
+
+        // Cargar datos al iniciar
+        SwingUtilities.invokeLater(this::cargarPropuestas);
     }
 
     private void configurarVentana() {
@@ -408,22 +410,49 @@ public class CoordinadorView extends JFrame {
     // ============================================================
 
     public void recargarTabla() {
-        boolean solo = cbSoloPendientes != null && cbSoloPendientes.isSelected();
-
-        // Delegar al controlador la obtención de datos
-        List<PropuestaRow> rows = controller.obtenerPropuestas(solo);
-
-        // Actualizar el modelo de la tabla
-        CoordinadorTableModel model = (CoordinadorTableModel) table.getModel();
-        model.setRows(rows);
-
-        // Actualizar contador de pendientes
-        actualizarContadorPendientes();
+        cargarPropuestas();
     }
 
-    private void actualizarContadorPendientes() {
-        long pendientes = controller.contarPorEstado(enumEstadoFormato.PENDIENTE);
-        if (lblPendientes != null) {
+    /**
+     * Carga las propuestas (Formatos A) del servidor
+     */
+    private void cargarPropuestas() {
+        if (controller == null) return;
+
+        // Ejecutar en background
+        SwingWorker<List<PropuestaRow>, Void> worker = new SwingWorker<>() {
+            @Override
+            protected List<PropuestaRow> doInBackground() {
+                boolean solo = cbSoloPendientes != null && cbSoloPendientes.isSelected();
+                return controller.obtenerPropuestas(solo);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<PropuestaRow> rows = get();
+
+                    // Actualizar el modelo de la tabla
+                    CoordinadorTableModel model = (CoordinadorTableModel) table.getModel();
+                    model.setRows(rows);
+
+                    // Actualizar contador de pendientes
+                    actualizarContadorPendientes(rows);
+
+                } catch (Exception e) {
+                    System.err.println("Error al cargar propuestas: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+        };
+        worker.execute();
+    }
+
+    private void actualizarContadorPendientes(List<PropuestaRow> rows) {
+        if (lblPendientes != null && rows != null) {
+            long pendientes = rows.stream()
+                    .filter(r -> "PENDIENTE".equalsIgnoreCase(r.estado()))
+                    .count();
             lblPendientes.setText(String.valueOf(pendientes));
         }
     }
@@ -431,7 +460,7 @@ public class CoordinadorView extends JFrame {
     /**
      * Método llamado por el controlador para notificar cambios de estado.
      */
-    public void notificarCambioEstado(Integer formatoId, enumEstadoFormato nuevoEstado) {
+    public void notificarCambioEstado(Integer formatoId, String nuevoEstado) {
         CoordinadorTableModel model = (CoordinadorTableModel) table.getModel();
 
         // Buscar la fila correspondiente y actualizarla
@@ -443,8 +472,8 @@ public class CoordinadorView extends JFrame {
             }
         }
 
-        // Actualizar el contador
-        actualizarContadorPendientes();
+        // Recargar para actualizar contador
+        cargarPropuestas();
     }
 
     private void abrirDialogoEvaluar() {
@@ -457,7 +486,7 @@ public class CoordinadorView extends JFrame {
         int modelRow = table.convertRowIndexToModel(row);
         PropuestaRow propuesta = ((CoordinadorTableModel) table.getModel()).getRow(modelRow);
 
-        if (propuesta.estadoFormato() != enumEstadoFormato.PENDIENTE) {
+        if (!"PENDIENTE".equalsIgnoreCase(propuesta.estado())) {
             info("Esta propuesta ya ha sido evaluada.");
             return;
         }
@@ -468,9 +497,8 @@ public class CoordinadorView extends JFrame {
                 propuesta.formatoId(),
                 controller,
                 nuevoEstado -> {
-                    // El controlador ya notificó el cambio
-                    // Solo necesitamos refrescar visualmente
-                    table.repaint();
+                    // Refrescar la tabla después de evaluar
+                    cargarPropuestas();
                 }
         ).setVisible(true);
     }
@@ -495,23 +523,17 @@ public class CoordinadorView extends JFrame {
         int modelRow = table.convertRowIndexToModel(viewRow);
         PropuestaRow propuesta = ((CoordinadorTableModel) table.getModel()).getRow(modelRow);
 
-        if (propuesta.estadoFormato() == enumEstadoFormato.PENDIENTE) {
+        if ("PENDIENTE".equalsIgnoreCase(propuesta.estado())) {
             new EvaluarFormatoADialog(
                     this,
                     propuesta.titulo(),
                     propuesta.formatoId(),
                     controller,
-                    nuevoEstado -> table.repaint()
+                    nuevoEstado -> cargarPropuestas()
             ).setVisible(true);
         } else {
-            // Mostrar detalles - delegar al controlador
-            Object detalle = controller.obtenerDetallePropuesta(propuesta.proyectoId());
-
-            new DetallePropuestaDialog(
-                    this,
-                    detalle != null ? detalle.toString() : "Sin detalles",
-                    propuesta
-            ).setVisible(true);
+            // Mostrar información de que ya fue evaluado
+            info("Este Formato A ya ha sido evaluado.\nEstado: " + propuesta.estado());
         }
     }
 
@@ -641,7 +663,7 @@ public class CoordinadorView extends JFrame {
                                                        boolean isSelected, boolean hasFocus, int row, int column) {
             PropuestaRow r = ((CoordinadorTableModel) table.getModel())
                     .getRow(table.convertRowIndexToModel(row));
-            setText(r.estadoFormato() == enumEstadoFormato.PENDIENTE ? "Evaluar" : "Detalles");
+            setText("PENDIENTE".equalsIgnoreCase(r.estado()) ? "Evaluar" : "Detalles");
             return this;
         }
     }
@@ -669,7 +691,7 @@ public class CoordinadorView extends JFrame {
             editingRow = row;
             PropuestaRow r = ((CoordinadorTableModel) table.getModel())
                     .getRow(table.convertRowIndexToModel(row));
-            btn.setText(r.estadoFormato() == enumEstadoFormato.PENDIENTE ? "Evaluar" : "Detalles");
+            btn.setText("PENDIENTE".equalsIgnoreCase(r.estado()) ? "Evaluar" : "Detalles");
             return btn;
         }
     }
@@ -685,9 +707,9 @@ public class CoordinadorView extends JFrame {
         SwingUtilities.invokeLater(() -> {
             try {
 
-                //CoordinadorController controller = new CoordinadorController();
+                //CoordinadorController controllers = new CoordinadorController();
 
-//                CoordinadorView view = new CoordinadorView(controller);
+//                CoordinadorView view = new CoordinadorView(controllers);
 //                view.setVisible(true);
 
             } catch (Throwable ex) {
@@ -701,54 +723,5 @@ public class CoordinadorView extends JFrame {
             }
         });
     }
-
-    /**
-     * Obtiene una dependencia desde ServiceManager usando reflexión.
-     * - Prueba métodos estáticos e instancia (si existe getInstance()/instance/constructor sin args).
-     * - Acepta varios nombres candidatos hasta encontrar uno que devuelva el tipo esperado.
-     */
-    @SuppressWarnings("unchecked")
-    private static <T> T sm(Class<T> type, String... methodCandidates) throws Exception {
-        Class<?> smClass = co.unicauca.gestiontrabajogrado.presentation.common.ServiceManager.class;
-
-        // Intentar conseguir una instancia por si los métodos no son estáticos
-        Object smInstance = null;
-        try {
-            try {
-                var m = smClass.getMethod("getInstance");
-                smInstance = m.invoke(null);
-            } catch (NoSuchMethodException ignore) {
-                try {
-                    var m = smClass.getMethod("instance");
-                    smInstance = m.invoke(null);
-                } catch (NoSuchMethodException ignore2) {
-                    try {
-                        smInstance = smClass.getDeclaredConstructor().newInstance();
-                    } catch (Throwable ignore3) {
-                        // Si no hay forma de instanciar, seguiremos probando métodos estáticos
-                    }
-                }
-            }
-        } catch (Throwable ignore) { /* seguimos */ }
-
-        // Probar con cada nombre candidato
-        for (String name : methodCandidates) {
-            try {
-                var m = smClass.getMethod(name);
-                Object val = m.invoke(smInstance); // sirve para estático o instancia
-                if (val != null && type.isAssignableFrom(val.getClass())) {
-                    return (T) val;
-                }
-            } catch (NoSuchMethodException ignored) {
-                // probar siguiente
-            }
-        }
-
-        throw new NoSuchMethodException(
-                "No encontré en ServiceManager un método que devuelva " + type.getSimpleName() +
-                        ". Probé: " + String.join(", ", methodCandidates)
-        );
-    }
-
 
 }

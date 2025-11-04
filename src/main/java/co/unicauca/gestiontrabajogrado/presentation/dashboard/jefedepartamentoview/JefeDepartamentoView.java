@@ -1,6 +1,6 @@
 package co.unicauca.gestiontrabajogrado.presentation.dashboard.jefedepartamentoview;
 
-import co.unicauca.gestiontrabajogrado.controller.JefeDepartamentoController;
+import co.unicauca.gestiontrabajogrado.application.controllers.JefeDepartamentoController;
 import co.unicauca.gestiontrabajogrado.presentation.common.HeaderPanel;
 import co.unicauca.gestiontrabajogrado.presentation.common.RoundedButton;
 import co.unicauca.gestiontrabajogrado.presentation.common.RoundedPanel;
@@ -10,8 +10,6 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -318,7 +316,7 @@ public class JefeDepartamentoView extends JFrame {
         cargarDatos();
     }
 
-    // ====== Métodos públicos para el controller ======
+    // ====== Métodos públicos para el controllers ======
 
     public void showError(String message) {
         JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);

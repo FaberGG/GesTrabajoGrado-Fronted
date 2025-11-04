@@ -1,21 +1,22 @@
 package co.unicauca.gestiontrabajogrado.presentation.dashboard.coordinadorview;
 
-import co.unicauca.gestiontrabajogrado.domain.model.enumEstadoFormato;
-
 import javax.swing.table.AbstractTableModel;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * TableModel del panel del Coordinador.
- * Columnas: Proyecto | Director | Estudiantes | Modalidad | Estado | Acciones
+ * TableModel del panel del Coordinador (RF3)
+ * Migrado para eliminar dependencias de enums del monolito
  */
 public class CoordinadorTableModel extends AbstractTableModel {
 
     private final List<PropuestaRow> rows = new ArrayList<>();
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private static final String[] COLS = {
-            "Proyecto", "Director", "Estudiantes", "Modalidad", "Estado", "Acciones"
+            "Título", "Director", "Fecha Carga", "Estado", "Acciones"
     };
 
     // -------- API usada desde CoordinadorView --------
@@ -33,48 +34,58 @@ public class CoordinadorTableModel extends AbstractTableModel {
     }
 
     /** Actualiza SOLO el estado de una fila (creando un nuevo record). */
-    public void updateEstado(int rowIndex, enumEstadoFormato nuevo) {
+    public void updateEstado(int rowIndex, String nuevoEstado) {
         PropuestaRow old = getRow(rowIndex);
-        PropuestaRow upd = old.withEstado(nuevo);   // método helper en PropuestaRow
+        PropuestaRow upd = old.withEstado(nuevoEstado);
         rows.set(rowIndex, upd);
         fireTableRowsUpdated(rowIndex, rowIndex);
     }
 
-    /** Útil si quieres calcular contadores por estado (p. ej. pendientes). */
-    public long countBy(enumEstadoFormato estado) {
-        return rows.stream().filter(r -> r.estadoFormato() == estado).count();
+    /** Cuenta filas por estado */
+    public long countBy(String estado) {
+        return rows.stream()
+                .filter(r -> estado.equalsIgnoreCase(r.estado()))
+                .count();
     }
 
     // -------- AbstractTableModel --------
 
-    @Override public int getRowCount() { return rows.size(); }
-
-    @Override public int getColumnCount() { return COLS.length; }
-
-    @Override public String getColumnName(int column) { return COLS[column]; }
-
-    @Override public Class<?> getColumnClass(int columnIndex) {
-        return switch (columnIndex) {
-            case 4 -> enumEstadoFormato.class; // Estado (para renderers/badges)
-            default -> String.class;
-        };
+    @Override
+    public int getRowCount() {
+        return rows.size();
     }
 
-    @Override public Object getValueAt(int rowIndex, int columnIndex) {
+    @Override
+    public int getColumnCount() {
+        return COLS.length;
+    }
+
+    @Override
+    public String getColumnName(int column) {
+        return COLS[column];
+    }
+
+    @Override
+    public Class<?> getColumnClass(int columnIndex) {
+        return String.class;
+    }
+
+    @Override
+    public Object getValueAt(int rowIndex, int columnIndex) {
         PropuestaRow r = rows.get(rowIndex);
         return switch (columnIndex) {
             case 0 -> r.titulo();
-            case 1 -> "—";               // Director (si no lo tienes en el record)
-            case 2 -> "—";               // Estudiantes (idem)
-            case 3 -> "Investigación";   // Modalidad (ajústalo si la tienes)
-            case 4 -> r.estadoFormato(); // enumEstadoFormato (lo renderiza el badge)
-            case 5 -> null;              // Acciones (la celda la maneja el renderer/botón)
+            case 1 -> r.nombreDocente();
+            case 2 -> r.fechaCarga() != null ? r.fechaCarga().format(DATE_FORMATTER) : "—";
+            case 3 -> r.estado();
+            case 4 -> null; // Acciones (la celda la maneja el renderer/botón)
             default -> "";
         };
     }
 
-    @Override public boolean isCellEditable(int rowIndex, int columnIndex) {
-        // Solo la columna Acciones, si usas un botón dentro de la tabla
-        return columnIndex == 5;
+    @Override
+    public boolean isCellEditable(int rowIndex, int columnIndex) {
+        // Solo la columna Acciones
+        return columnIndex == 4;
     }
 }

@@ -1,7 +1,6 @@
 package co.unicauca.gestiontrabajogrado.presentation.common;
 
-import co.unicauca.gestiontrabajogrado.controller.LoginController;
-import co.unicauca.gestiontrabajogrado.domain.service.IAutenticacionService;
+import co.unicauca.gestiontrabajogrado.application.session.SessionManager;
 import co.unicauca.gestiontrabajogrado.presentation.auth.LoginView;
 
 import javax.swing.*;
@@ -14,6 +13,8 @@ import java.awt.event.MouseEvent;
 /**
  * Clase base abstracta para los paneles laterales (sidebar) del sistema.
  * Proporciona funcionalidad común como botones de menú, cerrar sesión, etc.
+ *
+ * Migrada para usar SessionManager en lugar de servicios del monolito.
  */
 public abstract class BaseSidebarPanel extends JPanel {
 
@@ -90,27 +91,17 @@ public abstract class BaseSidebarPanel extends JPanel {
         );
 
         if (confirmResult == JOptionPane.YES_OPTION) {
+            // Cerrar sesión usando SessionManager
+            SessionManager.getInstance().logout();
+
             // Cerrar la ventana actual
             parentFrame.dispose();
 
-            // Abrir la ventana de login con controller inicializado
+            // Abrir la ventana de login
             SwingUtilities.invokeLater(() -> {
                 try {
-                    // Crear un servicio de autenticación (necesario para el controller)
-                    IAutenticacionService authService = createAutenticacionService();
-
-                    // Crear la vista de login
                     LoginView loginView = new LoginView();
-
-                    // Crear el controller (ya no necesita IAutenticacionService, usa AuthService interno)
-                    LoginController loginController = new LoginController(loginView);
-
-                    // Asignar el controller a la vista
-                    loginView.setController(loginController);
-
-                    // Mostrar la vista
                     loginView.setVisible(true);
-
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null,
                             "Error al abrir la ventana de login: " + ex.getMessage(),
@@ -122,12 +113,6 @@ public abstract class BaseSidebarPanel extends JPanel {
         }
     }
 
-    /**
-     * Crea una instancia del servicio de autenticación usando ServiceManager
-     */
-    private IAutenticacionService createAutenticacionService() {
-        return ServiceManager.getInstance().getAutenticacionService();
-    }
 
     /**
      * Alterna la visibilidad del submenú

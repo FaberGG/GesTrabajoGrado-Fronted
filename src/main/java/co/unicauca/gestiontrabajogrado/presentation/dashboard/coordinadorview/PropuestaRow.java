@@ -1,25 +1,28 @@
 package co.unicauca.gestiontrabajogrado.presentation.dashboard.coordinadorview;
 
-import co.unicauca.gestiontrabajogrado.domain.model.enumEstadoFormato;
-import co.unicauca.gestiontrabajogrado.domain.model.enumEstadoProyecto;
+import java.time.LocalDateTime;
 
+/**
+ * Record que representa una fila de propuesta (Formato A) en la tabla del coordinador
+ * Migrado para usar tipos simples en lugar de enums del monolito
+ */
 public record PropuestaRow(
-        Integer proyectoId,
         Integer formatoId,
-        String  titulo,
-        enumEstadoProyecto estadoProyecto,
-        enumEstadoFormato  estadoFormato,
-        Integer intento
+        String titulo,
+        String nombreDocente,
+        LocalDateTime fechaCarga,
+        String estado // "PENDIENTE", "EN_REVISION", "APROBADO", "RECHAZADO"
 ) {
-    /** Devuelve una copia con el estado de formato actualizado */
-    public PropuestaRow withEstado(enumEstadoFormato nuevo) {
+    /**
+     * Devuelve una copia con el estado actualizado
+     */
+    public PropuestaRow withEstado(String nuevoEstado) {
         return new PropuestaRow(
-                this.proyectoId(),
-                this.formatoId(),
-                this.titulo(),
-                this.estadoProyecto(),
-                nuevo,                 // <— aquí el nuevo estado
-                this.intento()
+                this.formatoId,
+                this.titulo,
+                this.nombreDocente,
+                this.fechaCarga,
+                nuevoEstado
         );
     }
 }

@@ -1,7 +1,7 @@
 package co.unicauca.gestiontrabajogrado.presentation.dashboard.docenteview;
 
-import co.unicauca.gestiontrabajogrado.controller.FormatoAControllerUI;
-import co.unicauca.gestiontrabajogrado.dto.submission.FormatoAData;
+import co.unicauca.gestiontrabajogrado.application.controllers.FormatoAController;
+import co.unicauca.gestiontrabajogrado.domain.dto.submission.FormatoAData;
 import co.unicauca.gestiontrabajogrado.presentation.common.DropFileField;
 
 import javax.swing.*;
@@ -12,13 +12,13 @@ import java.util.List;
 
 /**
  * Modal para crear/reenviar Formato A (Docente)
- * Vista pura - la lógica de negocio está en FormatoAControllerUI
+ * Vista pura - la lógica de negocio está en FormatoAController
  * RF2: Crear Formato A
  * RF4: Reenviar Formato A tras rechazo
  */
 public class FormatoAModal extends JDialog {
 
-    private final FormatoAControllerUI controller;
+    private final FormatoAController controller;
     private final boolean isReenvio;
     private final Long proyectoIdReenvio;
 
@@ -52,7 +52,7 @@ public class FormatoAModal extends JDialog {
 
     private FormatoAModal(JFrame parent, boolean isReenvio, Long proyectoId) {
         super(parent, isReenvio ? "Reenviar Formato A" : "Crear Formato A", true);
-        this.controller = new FormatoAControllerUI();
+        this.controller = new FormatoAController();
         this.isReenvio = isReenvio;
         this.proyectoIdReenvio = proyectoId;
 
@@ -221,7 +221,7 @@ public class FormatoAModal extends JDialog {
         btnEnviar.setText("Enviando...");
 
         // Llamar al controlador
-        controller.crearFormatoA(data, pdfFile, cartaFile, new FormatoAControllerUI.ResultCallback() {
+        controller.crearFormatoA(data, pdfFile, cartaFile, new FormatoAController.ResultCallback() {
             @Override
             public void onSuccess(String message, Long id) {
                 SwingUtilities.invokeLater(() -> {
@@ -262,7 +262,7 @@ public class FormatoAModal extends JDialog {
         btnEnviar.setText("Enviando...");
 
         // Llamar al controlador
-        controller.reenviarFormatoA(proyectoIdReenvio, pdfFile, cartaFile, new FormatoAControllerUI.ResultCallback() {
+        controller.reenviarFormatoA(proyectoIdReenvio, pdfFile, cartaFile, new FormatoAController.ResultCallback() {
             @Override
             public void onSuccess(String message, Long id) {
                 SwingUtilities.invokeLater(() -> {

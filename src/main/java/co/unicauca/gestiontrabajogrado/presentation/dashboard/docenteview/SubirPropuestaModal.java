@@ -1,10 +1,11 @@
 package co.unicauca.gestiontrabajogrado.presentation.dashboard.docenteview;
 
-import co.unicauca.gestiontrabajogrado.domain.model.enumModalidad;
-import co.unicauca.gestiontrabajogrado.dto.ProyectoGradoRequestDTO;
 import co.unicauca.gestiontrabajogrado.presentation.common.DropFileField;
 import co.unicauca.gestiontrabajogrado.presentation.common.GradientePanel;
-
+import co.unicauca.gestiontrabajogrado.application.controllers.FormatoAController;
+import co.unicauca.gestiontrabajogrado.domain.dto.submission.FormatoAData;
+import java.util.ArrayList;
+import java.util.Arrays;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -12,6 +13,7 @@ import java.text.Normalizer;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 public class SubirPropuestaModal extends JPanel {
     private static final Color C_BORDE_SUAVE = new Color(220, 220, 220);
@@ -142,21 +144,38 @@ public class SubirPropuestaModal extends JPanel {
         cbModalidad.addActionListener(e -> actualizarCamposSegunModalidad());
     }
 
-    // ========== MÉTODO PRINCIPAL: Construir DTO ==========
-    public ProyectoGradoRequestDTO construirDTO() {
-        ProyectoGradoRequestDTO dto = new ProyectoGradoRequestDTO();
-        dto.setTitulo(tfTitulo.getText().trim());
-        dto.setModalidad(toEnumModalidad(getModalidad()));
-        dto.setObjetivoGeneral(taObjGeneral.getText().trim());
-        dto.setObjetivosEspecificos(taObjEspecificos.getText().trim());
+    public FormatoAData construirFormatoAData() {
+        FormatoAData data = new FormatoAData();
+        data.setTitulo(tfTitulo.getText().trim());
+        data.setModalidad(toFormatoAModalidad(getModalidad()));
+        data.setObjetivoGeneral(taObjGeneral.getText().trim());
 
-        // Helper para parsear IDs de forma segura
-        dto.setDirectorId(parseIdSafelyLong(tfDirId));
-        dto.setCodirectorId(parseIdSafelyLong(tfCoDirId));
-        dto.setEstudiante1Id(parseIdSafelyLong(tfEstudiante1Id));
-        dto.setEstudiante2Id(parseIdSafelyLong(tfEstudiante2Id));
+        // Convertir objetivos específicos de String a List<String>
+        List<String> objetivos = parseObjetivosEspecificos(taObjEspecificos.getText().trim());
+        data.setObjetivosEspecificos(objetivos);
 
-        return dto;
+        // IDs de participantes
+        data.setDirectorId(parseIdSafelyLong(tfDirId));
+        data.setCodirectorId(parseIdSafelyLong(tfCoDirId));
+        data.setEstudiante1Id(parseIdSafelyLong(tfEstudiante1Id));
+        data.setEstudiante2Id(parseIdSafelyLong(tfEstudiante2Id));
+
+        return data;
+    }
+
+    // Helper para parsear objetivos específicos
+    private List<String> parseObjetivosEspecificos(String texto) {
+        List<String> objetivos = new ArrayList<>();
+        if (!texto.isEmpty()) {
+            String[] lineas = texto.split("\n");
+            for (String linea : lineas) {
+                String obj = linea.trim();
+                if (!obj.isEmpty()) {
+                    objetivos.add(obj);
+                }
+            }
+        }
+        return objetivos;
     }
 
     private Integer parseIdSafely(JTextField field) {
@@ -270,15 +289,13 @@ public class SubirPropuestaModal extends JPanel {
         return s == null || s.trim().isEmpty();
     }
 
-    // ========== Mapeo a enum del dominio ==========
-    private static enumModalidad toEnumModalidad(String etiqueta) {
+    private static FormatoAData.Modalidad toFormatoAModalidad(String etiqueta) {
         if (etiqueta == null) return null;
         String s = Normalizer.normalize(etiqueta, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
                 .toLowerCase().trim();
-        //if (s.startsWith("plan")) return enumModalidad.PLAN_COTERMINAL;
-        if (s.startsWith("invest")) return enumModalidad.INVESTIGACION;
-        if (s.startsWith("practica")) return enumModalidad.PRACTICA_PROFESIONAL;
+        if (s.startsWith("invest")) return FormatoAData.Modalidad.INVESTIGACION;
+        if (s.startsWith("practica")) return FormatoAData.Modalidad.PRACTICA_PROFESIONAL;
         return null;
     }
 

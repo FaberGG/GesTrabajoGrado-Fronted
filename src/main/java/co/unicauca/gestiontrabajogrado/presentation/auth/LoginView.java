@@ -1,6 +1,7 @@
 package co.unicauca.gestiontrabajogrado.presentation.auth;
 
-import co.unicauca.gestiontrabajogrado.controller.LoginController;
+import co.unicauca.gestiontrabajogrado.application.controllers.LoginController;
+import co.unicauca.gestiontrabajogrado.domain.enums.Rol;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -45,7 +46,7 @@ public class LoginView extends JFrame {
         this.controller = controller;
         loadRememberedData();
     }
-    
+
     /**
      * Crear fuente para "Universidad del Cauca" (estilo inteligente como RegisterView)
      */
@@ -603,44 +604,103 @@ public class LoginView extends JFrame {
         registerTabButton.repaint();
     }
 
-    private void handleLogin() {
-        if (controller == null) {
-            showError("Error interno: Controlador no inicializado.");
-            return;
-        }
-        controller.handleLogin(getEmailText(), getPasswordText(), false);
-    }
-
-    private void handleRegistrarse() {
-        if (controller != null) {
-            controller.handleRegistrarse();
-        } else {
-            showError("Controlador no inicializado.");
-        }
-    }
     
     private void handleForgotPassword() {
         showSuccess("Funcionalidad de recuperación de contraseña próximamente.");
     }
 
     private void loadRememberedData() {
-        if (controller != null) {
-            String rememberedEmail = controller.getRememberedEmail();
-            if (!rememberedEmail.isEmpty()) {
-                emailField.setText(rememberedEmail);
-                passwordField.requestFocus();
+//        if (controller != null) {
+//            String rememberedEmail = controller.getRememberedEmail();
+//            if (!rememberedEmail.isEmpty()) {
+//                emailField.setText(rememberedEmail);
+//                passwordField.requestFocus();
+//            }
+//        }
+    }
+
+
+    /**
+     * Habilita/deshabilita el botón de login
+     */
+    public void setLoginEnabled(boolean enabled) {
+        loginButton.setEnabled(enabled);
+    }
+
+    /**
+     * Muestra un dialog de loading
+     */
+    public void showLoading(String message) {
+        // Implementación simple con JDialog
+        javax.swing.JDialog loadingDialog = new javax.swing.JDialog(this, "Cargando", true);
+        loadingDialog.setDefaultCloseOperation(javax.swing.JDialog.DO_NOTHING_ON_CLOSE);
+        loadingDialog.setSize(300, 100);
+        loadingDialog.setLocationRelativeTo(this);
+
+        javax.swing.JLabel label = new javax.swing.JLabel(message, javax.swing.SwingConstants.CENTER);
+        label.setFont(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 14));
+        loadingDialog.add(label);
+
+        // Mostrar en hilo separado
+        new Thread(() -> {
+            javax.swing.SwingUtilities.invokeLater(() -> loadingDialog.setVisible(true));
+        }).start();
+    }
+
+    /**
+     * Oculta el dialog de loading
+     */
+    public void hideLoading() {
+        // Cerrar todos los dialogs abiertos
+        for (java.awt.Window window : java.awt.Window.getWindows()) {
+            if (window instanceof javax.swing.JDialog) {
+                window.dispose();
             }
         }
     }
 
-    // Métodos públicos para el controller
-    public void showError(String message) {
-        JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
+    /**
+     * Muestra un mensaje de éxito
+     */
+    public void showSuccess(String message) {
+        javax.swing.JOptionPane.showMessageDialog(
+                this,
+                message,
+                "Éxito",
+                javax.swing.JOptionPane.INFORMATION_MESSAGE
+        );
     }
 
-    public void showSuccess(String message) {
-        JOptionPane.showMessageDialog(this, message, "Éxito", JOptionPane.INFORMATION_MESSAGE);
+    /**
+     * Muestra un mensaje de error
+     */
+    public void showError(String message) {
+        javax.swing.JOptionPane.showMessageDialog(
+                this,
+                message,
+                "Error",
+                javax.swing.JOptionPane.ERROR_MESSAGE
+        );
     }
+
+    // MODIFICAR el método handleLogin() existente
+    private void handleLogin() {
+        if (controller == null) {
+            showError("Error interno: Controlador no inicializado.");
+            return;
+        }
+        controller.handleLogin(getEmailText(), getPasswordText());
+    }
+
+    // MODIFICAR el método handleRegistrarse() existente
+    private void handleRegistrarse() {
+        if (controller != null) {
+            controller.handleNavigateToRegister();
+        } else {
+            showError("Controlador no inicializado.");
+        }
+    }
+
 
     public String getEmailText() {
         return emailField.getText().trim();
@@ -654,68 +714,6 @@ public class LoginView extends JFrame {
         return false; // No incluimos checkbox en este diseño
     }
 
-    public static void main(String[] args) {
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception ignored) { 
-            // Fallback a look and feel por defecto
-        }
 
-        SwingUtilities.invokeLater(() -> {
-            try {
-                // AQUÍ NECESITAS REEMPLAZAR CON TU IMPLEMENTACIÓN REAL
-                // Busca en tu proyecto cómo crear el IAutenticacionService
-                // Por ejemplo: new AutenticacionService(repo, hasher, emailPolicy, passwordPolicy)
-                
-                // Para pruebas rápidas, implementación temporal:
-                co.unicauca.gestiontrabajogrado.domain.service.IAutenticacionService tempService = 
-                    new co.unicauca.gestiontrabajogrado.domain.service.IAutenticacionService() {
-                        @Override
-                        public boolean autenticar(String email, String password) {
-                            System.out.println("Mock autenticar: " + email);
-                            return true;
-                        }
-
-                        @Override
-                        public co.unicauca.gestiontrabajogrado.domain.model.User register(
-                            co.unicauca.gestiontrabajogrado.domain.model.User user, String plainPassword) {
-                            System.out.println("Mock register: " + user.getEmail());
-                            return user;
-                        }
-                        
-                        @Override
-                        public co.unicauca.gestiontrabajogrado.domain.model.User login(
-                            String email, String plainPassword) {
-                            System.out.println("Mock login: " + email);
-                            // Crear usuario ficticio para pruebas
-                            return new co.unicauca.gestiontrabajogrado.domain.model.User(
-                                1L,
-                                "Test",
-                                "User",
-                                email,
-                                co.unicauca.gestiontrabajogrado.domain.model.enumRol.ESTUDIANTE);
-                        }
-
-                        @Override
-                        public void cerrarSesion() {
-                            System.out.println("Mock cerrar sesión");
-                        }
-                    };
-
-                LoginView loginView = new LoginView();
-                // LoginController ya no necesita IAutenticacionService, usa AuthService interno
-                co.unicauca.gestiontrabajogrado.controller.LoginController loginController =
-                    new co.unicauca.gestiontrabajogrado.controller.LoginController(loginView);
-                loginView.setController(loginController);
-                loginView.setVisible(true);
-                
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(null, 
-                    "Error al inicializar: " + e.getMessage(), 
-                    "Error", JOptionPane.ERROR_MESSAGE);
-                e.printStackTrace();
-            }
-        });
-    }
     
 }

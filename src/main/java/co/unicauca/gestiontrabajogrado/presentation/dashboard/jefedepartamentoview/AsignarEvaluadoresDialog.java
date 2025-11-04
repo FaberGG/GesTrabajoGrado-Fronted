@@ -1,9 +1,9 @@
 package co.unicauca.gestiontrabajogrado.presentation.dashboard.jefedepartamentoview;
 
-import co.unicauca.gestiontrabajogrado.controller.JefeDepartamentoController;
+import co.unicauca.gestiontrabajogrado.application.controllers.JefeDepartamentoController;
+import co.unicauca.gestiontrabajogrado.domain.dto.review.EvaluadorDTO;
 import co.unicauca.gestiontrabajogrado.presentation.common.RoundedButton;
 import co.unicauca.gestiontrabajogrado.presentation.common.RoundedPanel;
-import co.unicauca.gestiontrabajogrado.services.AnteproyectoService.EvaluadorDTO;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -11,7 +11,7 @@ import java.awt.*;
 import java.util.List;
 
 /**
- * Diálogo para asignar evaluadores a un anteproyecto
+ * Diálogo para asignar evaluadores a un anteproyecto (RF7)
  */
 public class AsignarEvaluadoresDialog extends JDialog {
 
@@ -288,7 +288,7 @@ public class AsignarEvaluadoresDialog extends JDialog {
             return;
         }
 
-        if (eval1.id.equals(eval2.id)) {
+        if (eval1.getId().equals(eval2.getId())) {
             JOptionPane.showMessageDialog(this,
                     "Los evaluadores deben ser diferentes",
                     "Validación", JOptionPane.WARNING_MESSAGE);
@@ -300,7 +300,7 @@ public class AsignarEvaluadoresDialog extends JDialog {
                 "¿Está seguro de asignar estos evaluadores?\n\n" +
                         "Evaluador 1: " + eval1.getNombreCompleto() + "\n" +
                         "Evaluador 2: " + eval2.getNombreCompleto() + "\n\n" +
-                        "El anteproyecto cambiará a estado 'EN_REVISION'",
+                        "El anteproyecto cambiará a estado 'EN_EVALUACION'",
                 "Confirmar Asignación",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.QUESTION_MESSAGE);
@@ -309,32 +309,30 @@ public class AsignarEvaluadoresDialog extends JDialog {
             return;
         }
 
-        // Asignar (en background)
-        SwingWorker<Boolean, Void> worker = new SwingWorker<>() {
-            @Override
-            protected Boolean doInBackground() {
-                return controller.asignarEvaluadores(
-                        anteproyecto.proyectoId(),
-                        eval1.id,
-                        eval2.id
-                );
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    boolean exitoso = get();
-                    if (exitoso) {
+        // Asignar usando el callback pattern
+        controller.asignarEvaluadores(
+                anteproyecto.anteproyectoId(),
+                eval1.getId().intValue(),
+                eval2.getId().intValue(),
+                new JefeDepartamentoController.ResultCallback() {
+                    @Override
+                    public void onSuccess(String message) {
+                        JOptionPane.showMessageDialog(AsignarEvaluadoresDialog.this,
+                                message,
+                                "Éxito",
+                                JOptionPane.INFORMATION_MESSAGE);
                         dispose();
                     }
-                } catch (Exception e) {
-                    JOptionPane.showMessageDialog(AsignarEvaluadoresDialog.this,
-                            "Error: " + e.getMessage(),
-                            "Error", JOptionPane.ERROR_MESSAGE);
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        JOptionPane.showMessageDialog(AsignarEvaluadoresDialog.this,
+                                errorMessage,
+                                "Error",
+                                JOptionPane.ERROR_MESSAGE);
+                    }
                 }
-            }
-        };
-        worker.execute();
+        );
     }
 
     /**

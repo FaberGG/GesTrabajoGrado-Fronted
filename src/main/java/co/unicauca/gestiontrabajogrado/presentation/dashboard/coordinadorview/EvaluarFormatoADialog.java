@@ -1,7 +1,6 @@
 package co.unicauca.gestiontrabajogrado.presentation.dashboard.coordinadorview;
 
-import co.unicauca.gestiontrabajogrado.controller.CoordinadorController;
-import co.unicauca.gestiontrabajogrado.domain.model.enumEstadoFormato;
+import co.unicauca.gestiontrabajogrado.application.controllers.CoordinadorController;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -9,16 +8,16 @@ import java.awt.*;
 import java.util.function.Consumer;
 
 /**
- * Diálogo de Evaluación de Formato A.
- * Solo maneja la presentación, delega la lógica al controlador.
+ * Diálogo de Evaluación de Formato A (RF3)
+ * Migrado para usar el nuevo controller con callbacks
  */
 public class EvaluarFormatoADialog extends JDialog {
 
     private final Integer formatoId;
     private final CoordinadorController controller;
-    private final Consumer<enumEstadoFormato> onSaved;
+    private final Consumer<String> onSaved;
 
-    private final JComboBox<String> cbEstado = new JComboBox<>(new String[]{"Aprobado", "Rechazado"});
+    private final JComboBox<String> cbEstado = new JComboBox<>(new String[]{"Aprobar", "Rechazar"});
     private final JTextArea txtObs = new JTextArea(8, 50);
 
     public EvaluarFormatoADialog(
@@ -26,8 +25,8 @@ public class EvaluarFormatoADialog extends JDialog {
             String tituloPropuesta,
             Integer formatoId,
             CoordinadorController controller,
-            Consumer<enumEstadoFormato> onSaved) {
-        super(parent, "Evaluar", true);
+            Consumer<String> onSaved) {
+        super(parent, "Evaluar Formato A", true);
         this.formatoId = formatoId;
         this.controller = controller;
         this.onSaved = onSaved;
@@ -151,41 +150,52 @@ public class EvaluarFormatoADialog extends JDialog {
         String obs = txtObs.getText().trim();
 
         // Validación básica en la vista
-        if (obs.isEmpty()) {
+        if (obs.trim().isEmpty()) {
             mostrarError("Por favor ingrese las observaciones de la evaluación.");
             return;
         }
 
-        enumEstadoFormato estadoSeleccionado = "Aprobado".equalsIgnoreCase(estadoTxt)
-                ? enumEstadoFormato.APROBADO
-                : enumEstadoFormato.RECHAZADO;
+        String decision = "Aprobar".equalsIgnoreCase(estadoTxt) ? "APROBADO" : "RECHAZADO";
 
-        try {
-            // Delegar al controlador
-            enumEstadoFormato estadoResultante;
-            if (estadoSeleccionado == enumEstadoFormato.APROBADO) {
-                estadoResultante = controller.aprobarFormato(formatoId, obs);
-            } else {
-                estadoResultante = controller.rechazarFormato(formatoId, obs);
-            }
+        // Delegar al controlador con callback
+        if ("APROBADO".equals(decision)) {
+            controller.aprobarFormato(formatoId, obs, new CoordinadorController.ResultCallback() {
+                @Override
+                public void onSuccess(String message) {
+                    mostrarExito(message);
 
-            // Notificar a la vista padre
-            if (onSaved != null) {
-                onSaved.accept(estadoResultante);
-            }
+                    // Notificar a la vista padre
+                    if (onSaved != null) {
+                        onSaved.accept(decision);
+                    }
 
-            // Mostrar mensaje de éxito
-            String mensaje = estadoResultante == enumEstadoFormato.APROBADO
-                    ? "✅ Formato A APROBADO exitosamente"
-                    : "⚠️ Formato A RECHAZADO";
+                    dispose();
+                }
 
-            mostrarExito(mensaje);
-            dispose();
+                @Override
+                public void onError(String errorMessage) {
+                    mostrarError(errorMessage);
+                }
+            });
+        } else {
+            controller.rechazarFormato(formatoId, obs, new CoordinadorController.ResultCallback() {
+                @Override
+                public void onSuccess(String message) {
+                    mostrarExito(message);
 
-        } catch (IllegalArgumentException ex) {
-            mostrarError(ex.getMessage());
-        } catch (Exception ex) {
-            mostrarError("Error al procesar la evaluación:\n" + ex.getMessage());
+                    // Notificar a la vista padre
+                    if (onSaved != null) {
+                        onSaved.accept(decision);
+                    }
+
+                    dispose();
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    mostrarError(errorMessage);
+                }
+            });
         }
     }
 

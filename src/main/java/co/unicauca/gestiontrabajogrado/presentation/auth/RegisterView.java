@@ -1,8 +1,8 @@
 package co.unicauca.gestiontrabajogrado.presentation.auth;
 
-import co.unicauca.gestiontrabajogrado.controller.RegisterController;
-import co.unicauca.gestiontrabajogrado.domain.model.enumProgram;
-import co.unicauca.gestiontrabajogrado.domain.model.enumRol;
+import co.unicauca.gestiontrabajogrado.application.controllers.RegisterController;
+import co.unicauca.gestiontrabajogrado.domain.enums.Programa;
+import co.unicauca.gestiontrabajogrado.domain.enums.Rol;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -353,10 +353,11 @@ public class RegisterView extends JFrame {
     private JComboBox<ProgramItem> createProgramComboBox() {
         ProgramItem[] programItems = {
                 new ProgramItem(null, "Programa *"),
-                new ProgramItem(enumProgram.INGENIERIA_DE_SISTEMAS, "Ingeniería de Sistemas"),
-                new ProgramItem(enumProgram.INGENIERIA_ELECTRONICA_Y_TELECOMUNICACIONES, "Ingeniería Electrónica y Telecomunicaciones"),
-                new ProgramItem(enumProgram.AUTOMATICA_INDUSTRIAL, "Automática Industrial"),
-                new ProgramItem(enumProgram.TECNOLOGIA_EN_TELEMATICA, "Tecnología en Telemática")
+                new ProgramItem(Programa.INGENIERIA_DE_SISTEMAS, "Ingeniería de Sistemas"),
+                new ProgramItem(Programa.INGENIERIA_ELECTRONICA_Y_TELECOMUNICACIONES,
+                        "Ingeniería Electrónica y Telecomunicaciones"),
+                new ProgramItem(Programa.AUTOMATICA_INDUSTRIAL, "Automática Industrial"),
+                new ProgramItem(Programa.TECNOLOGIA_EN_TELEMATICA, "Tecnología en Telemática")
         };
 
         JComboBox<ProgramItem> comboBox = new JComboBox<ProgramItem>(programItems) {
@@ -391,8 +392,8 @@ public class RegisterView extends JFrame {
     private JComboBox<RolItem> createRolComboBox() {
         RolItem[] rolItems = {
                 new RolItem(null, "Rol *"),
-                new RolItem(enumRol.ESTUDIANTE, "Estudiante"),
-                new RolItem(enumRol.DOCENTE, "Docente")
+                new RolItem(Rol.ESTUDIANTE, "Estudiante"),
+                new RolItem(Rol.DOCENTE, "Docente")
         };
 
         JComboBox<RolItem> comboBox = new JComboBox<RolItem>(rolItems) {
@@ -586,51 +587,103 @@ public class RegisterView extends JFrame {
             }
         });
     }
-
     private void handleRegister() {
         if (controller == null) {
             showError("Error interno: Controlador no inicializado.");
             return;
         }
-        
+
         controller.handleRegister(
-            getNombres(),
-            getApellidos(),
-            getIdentificacion(),
-            getCelular(),
-            getSelectedProgram(),
-            getSelectedRol(),
-            getEmail(),
-            getPassword(),
-            ""
+                getNombres(),
+                getApellidos(),
+                getCelular(),
+                getSelectedProgram(),
+                getSelectedRol(),
+                getEmail(),
+                getPassword()
         );
     }
 
     private void handleVolverLogin() {
         if (controller != null) {
-            controller.handleVolverLogin();
+            controller.handleNavigateToLogin();
         } else {
             dispose();
             SwingUtilities.invokeLater(() -> {
-                try {
-                    Class<?> loginViewClass = Class.forName("co.unicauca.gestiontrabajogrado.presentation.auth.LoginView");
-                    JFrame loginView = (JFrame) loginViewClass.getDeclaredConstructor().newInstance();
-                    loginView.setVisible(true);
-                } catch (Exception e) {
-                    System.err.println("Error al abrir LoginView: " + e.getMessage());
-                    System.exit(0);
-                }
+                co.unicauca.gestiontrabajogrado.presentation.auth.LoginView loginView =
+                        new co.unicauca.gestiontrabajogrado.presentation.auth.LoginView();
+
+                co.unicauca.gestiontrabajogrado.application.controllers.LoginController loginController =
+                        new co.unicauca.gestiontrabajogrado.application.controllers.LoginController(loginView);
+
+                loginView.setController(loginController);
+                loginView.setVisible(true);
             });
         }
     }
-
-    // Métodos públicos para el controller
-    public void showError(String message) {
-        JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
+    /**
+     * Habilita/deshabilita el botón de registro
+     */
+    public void setRegisterEnabled(boolean enabled) {
+        registerButton.setEnabled(enabled);
     }
 
+    /**
+     * Muestra un dialog de loading
+     */
+    public void showLoading(String message) {
+        javax.swing.JDialog loadingDialog = new javax.swing.JDialog(this, "Cargando", true);
+        loadingDialog.setDefaultCloseOperation(javax.swing.JDialog.DO_NOTHING_ON_CLOSE);
+        loadingDialog.setSize(300, 100);
+        loadingDialog.setLocationRelativeTo(this);
+
+        javax.swing.JLabel label = new javax.swing.JLabel(message, javax.swing.SwingConstants.CENTER);
+        label.setFont(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 14));
+        loadingDialog.add(label);
+
+        new Thread(() -> {
+            javax.swing.SwingUtilities.invokeLater(() -> loadingDialog.setVisible(true));
+        }).start();
+    }
+
+    /**
+     * Oculta el dialog de loading
+     */
+    public void hideLoading() {
+        for (java.awt.Window window : java.awt.Window.getWindows()) {
+            if (window instanceof javax.swing.JDialog) {
+                window.dispose();
+            }
+        }
+    }
+
+
+
+
+
+
+    /**
+     * Muestra un mensaje de error
+     */
+    public void showError(String message) {
+        javax.swing.JOptionPane.showMessageDialog(
+                this,
+                message,
+                "Error",
+                javax.swing.JOptionPane.ERROR_MESSAGE
+        );
+    }
+
+    /**
+     * Muestra un mensaje de éxito
+     */
     public void showSuccess(String message) {
-        JOptionPane.showMessageDialog(this, message, "Éxito", JOptionPane.INFORMATION_MESSAGE);
+        javax.swing.JOptionPane.showMessageDialog(
+                this,
+                message,
+                "Éxito",
+                javax.swing.JOptionPane.INFORMATION_MESSAGE
+        );
     }
 
     // Getters actualizados para trabajar con placeholders mejorados
@@ -650,14 +703,18 @@ public class RegisterView extends JFrame {
         return celularField.getText().trim();
     }
 
-    public enumProgram getSelectedProgram() {
+    public String getSelectedProgram() {
         ProgramItem selected = (ProgramItem) programaComboBox.getSelectedItem();
-        return selected != null ? selected.getEnumValue() : null;
+        return selected != null && selected.getEnumValue() != null
+                ? selected.getEnumValue().name()
+                : null;
     }
 
-    public enumRol getSelectedRol() {
+    public String getSelectedRol() {
         RolItem selected = (RolItem) rolComboBox.getSelectedItem();
-        return selected != null ? selected.getEnumValue() : null;
+        return selected != null && selected.getEnumValue() != null
+                ? selected.getEnumValue().name()
+                : null;
     }
 
     public String getEmail() {
@@ -670,20 +727,16 @@ public class RegisterView extends JFrame {
 
     // Clases internas para los ComboBox items
     private static class ProgramItem {
-        private final enumProgram enumValue;
+        private final Programa enumValue;
         private final String displayName;
 
-        public ProgramItem(enumProgram enumValue, String displayName) {
+        public ProgramItem(Programa enumValue, String displayName) {
             this.enumValue = enumValue;
             this.displayName = displayName;
         }
 
-        public enumProgram getEnumValue() {
+        public Programa getEnumValue() {
             return enumValue;
-        }
-
-        public String getDisplayName() {
-            return displayName;
         }
 
         @Override
@@ -693,20 +746,16 @@ public class RegisterView extends JFrame {
     }
 
     private static class RolItem {
-        private final enumRol enumValue;
+        private final Rol enumValue;
         private final String displayName;
 
-        public RolItem(enumRol enumValue, String displayName) {
+        public RolItem(Rol enumValue, String displayName) {
             this.enumValue = enumValue;
             this.displayName = displayName;
         }
 
-        public enumRol getEnumValue() {
+        public Rol getEnumValue() {
             return enumValue;
-        }
-
-        public String getDisplayName() {
-            return displayName;
         }
 
         @Override

@@ -1,8 +1,8 @@
 package co.unicauca.gestiontrabajogrado.presentation.dashboard.docenteview;
 
-import co.unicauca.gestiontrabajogrado.controller.FormatoAControllerUI;
-import co.unicauca.gestiontrabajogrado.dto.submission.FormatoAPage;
-import co.unicauca.gestiontrabajogrado.dto.submission.FormatoAView;
+import co.unicauca.gestiontrabajogrado.application.controllers.FormatoAController;
+import co.unicauca.gestiontrabajogrado.domain.dto.submission.FormatoAPage;
+import co.unicauca.gestiontrabajogrado.domain.dto.submission.FormatoAView;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -15,7 +15,7 @@ import java.text.SimpleDateFormat;
  */
 public class FormatoAListPanel extends JPanel {
 
-    private final FormatoAControllerUI controller;
+    private final FormatoAController controller;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm");
 
     // Componentes
@@ -32,7 +32,7 @@ public class FormatoAListPanel extends JPanel {
     private int totalPages = 0;
 
     public FormatoAListPanel() {
-        this.controller = new FormatoAControllerUI();
+        this.controller = new FormatoAController();
         initComponents();
         setupLayout();
         setupListeners();
@@ -40,8 +40,8 @@ public class FormatoAListPanel extends JPanel {
     }
 
     private void initComponents() {
-        // Tabla
-        String[] columnas = {"ID", "Título", "Modalidad", "Fecha Creación", "Estado"};
+        // Tabla con columnas basadas en FormatoAView
+        String[] columnas = {"ID", "Proyecto ID", "Versión", "Fecha Envío", "Estado"};
         tableModel = new DefaultTableModel(columnas, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -133,7 +133,7 @@ public class FormatoAListPanel extends JPanel {
         btnAnterior.setEnabled(false);
         btnSiguiente.setEnabled(false);
 
-        controller.listarFormatoA(null, currentPage, pageSize, new FormatoAControllerUI.ListCallback() {
+        controller.listarFormatoA(null, currentPage, pageSize, new FormatoAController.ListCallback() {
             @Override
             public void onSuccess(FormatoAPage page) {
                 SwingUtilities.invokeLater(() -> {
@@ -159,15 +159,15 @@ public class FormatoAListPanel extends JPanel {
         // Limpiar tabla
         tableModel.setRowCount(0);
 
-        // Agregar filas
+        // Agregar filas con los campos disponibles en FormatoAView
         if (page.getContent() != null) {
             for (FormatoAView view : page.getContent()) {
                 Object[] fila = {
                     view.getId(),
-                    view.getTitulo(),
-                    view.getModalidad() != null ? view.getModalidad().toString() : "",
-                    view.getFechaCreacion() != null ? dateFormat.format(view.getFechaCreacion()) : "",
-                    view.getEstado() != null ? view.getEstado() : ""
+                    view.getProyectoId(),
+                    view.getVersion(),
+                    view.getFechaEnvio() != null ? dateFormat.format(view.getFechaEnvio()) : "N/A",
+                    view.getEstado() != null ? view.getEstado() : "PENDIENTE"
                 };
                 tableModel.addRow(fila);
             }
@@ -191,13 +191,13 @@ public class FormatoAListPanel extends JPanel {
     }
 
     private void mostrarDetalle(Long id) {
-        controller.obtenerFormatoA(id, new FormatoAControllerUI.DetailCallback() {
+        controller.obtenerFormatoACompleto(id, new FormatoAController.DetailCompleteCallback() {
             @Override
-            public void onSuccess(FormatoAView view) {
+            public void onSuccess(co.unicauca.gestiontrabajogrado.domain.dto.FormatoACompleteDTO completeDTO) {
                 SwingUtilities.invokeLater(() -> {
                     FormatoADetailDialog dialog = new FormatoADetailDialog(
                         (JFrame) SwingUtilities.getWindowAncestor(FormatoAListPanel.this),
-                        view
+                        completeDTO
                     );
                     dialog.setVisible(true);
                 });

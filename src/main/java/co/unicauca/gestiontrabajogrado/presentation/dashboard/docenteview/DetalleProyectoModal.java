@@ -1,9 +1,7 @@
 package co.unicauca.gestiontrabajogrado.presentation.dashboard.docenteview;
 
-import co.unicauca.gestiontrabajogrado.domain.model.enumEstadoProyecto;
-import co.unicauca.gestiontrabajogrado.domain.model.enumModalidad;
-import co.unicauca.gestiontrabajogrado.dto.FormatoADetalleDTO;
-import co.unicauca.gestiontrabajogrado.dto.ProyectoGradoResponseDTO;
+
+import co.unicauca.gestiontrabajogrado.domain.dto.submission.FormatoAView;
 import co.unicauca.gestiontrabajogrado.presentation.common.DropFileField;
 import co.unicauca.gestiontrabajogrado.presentation.common.GradientePanel;
 
@@ -24,8 +22,6 @@ public class DetalleProyectoModal extends JPanel {
 
     // Estado del modal
     private Long proyectoId;
-    private ProyectoGradoResponseDTO proyecto;
-    private FormatoADetalleDTO ultimoFormato;
 
     // Componentes de información (solo lectura)
     private final JLabel lblTitulo = new JLabel();
@@ -301,110 +297,93 @@ public class DetalleProyectoModal extends JPanel {
         grid.add(comp, c);
     }
 
-    // ========== Cargar datos del proyecto ==========
+    // Nuevo campo de clase
+    private FormatoAView formatoAActual;
 
-    public void cargarProyecto(ProyectoGradoResponseDTO proyecto, FormatoADetalleDTO formato) {
-        this.proyectoId = proyecto.getId();
-        this.proyecto = proyecto;
-        this.ultimoFormato = formato;
+    public void cargarFormatoA(FormatoAView formatoA) {
+        this.formatoAActual = formatoA;
+        this.proyectoId = formatoA.getProyectoId();
 
-        // Información general
-        lblTitulo.setText(proyecto.getTitulo() != null ? proyecto.getTitulo() : "Sin título");
-        lblModalidad.setText(proyecto.getModalidad() != null ? proyecto.getModalidad().toString() : "Sin modalidad");
+        // Información básica
+        lblTitulo.setText("Proyecto #" + formatoA.getProyectoId()); // Temporal, falta título real
+        lblModalidad.setText("Versión " + formatoA.getVersion());
 
         // Estado con color
-        if (proyecto.getEstado() != null) {
-            lblEstado.setText(obtenerTextoEstado(proyecto.getEstado()));
-            lblEstado.setForeground(obtenerColorEstado(proyecto.getEstado()));
+        if (formatoA.getEstado() != null) {
+            lblEstado.setText(obtenerTextoEstadoFormato(formatoA.getEstado()));
+            lblEstado.setForeground(obtenerColorEstadoFormato(formatoA.getEstado()));
             lblEstado.setFont(F_BODY.deriveFont(Font.BOLD));
         }
 
-        lblIntentos.setText("Intento " + (proyecto.getNumeroIntentos() != null ? proyecto.getNumeroIntentos() : 0) + " de 3");
-        if (proyecto.getNumeroIntentos() != null && proyecto.getNumeroIntentos() >= 3) {
+        lblIntentos.setText("Versión " + formatoA.getVersion() + " de 3");
+        if (formatoA.getVersion() != null && formatoA.getVersion() >= 3) {
             lblIntentos.setForeground(C_ROJO_1);
         }
 
-        // Participantes
-        lblDirector.setText("ID: " + (proyecto.getDirectorId() != null ? proyecto.getDirectorId() : "No asignado"));
-        lblCodirector.setText("ID: " + (proyecto.getCodirectorId() != null ? proyecto.getCodirectorId() : "No asignado"));
-        lblEstudiante1.setText("ID: " + (proyecto.getEstudiante1Id() != null ? proyecto.getEstudiante1Id() : "No asignado"));
-        lblEstudiante2.setText("ID: " + (proyecto.getEstudiante2Id() != null ? proyecto.getEstudiante2Id() : "No asignado"));
-
-        // Objetivos
-        taObjGeneral.setText(proyecto.getObjetivoGeneral() != null ? proyecto.getObjetivoGeneral() : "No especificado");
-        taObjEspecificos.setText(proyecto.getObjetivosEspecificos() != null ? proyecto.getObjetivosEspecificos() : "No especificados");
-
         // Observaciones
-        if (formato != null && formato.getObservaciones() != null && !formato.getObservaciones().trim().isEmpty()) {
-            taObservaciones.setText(formato.getObservaciones());
+        if (formatoA.getObservaciones() != null &&
+                !formatoA.getObservaciones().trim().isEmpty()) {
+            taObservaciones.setText(formatoA.getObservaciones());
             taObservaciones.setForeground(Color.BLACK);
         } else {
             taObservaciones.setText("No hay observaciones del coordinador.");
             taObservaciones.setForeground(new Color(120, 120, 120));
         }
 
+        // NOTA: Para mostrar objetivos y participantes, necesitarías
+        // hacer otra petición al Progress Tracking Service o al backend
+        // Por ahora dejamos esos campos vacíos
+        taObjGeneral.setText("Información no disponible");
+        taObjEspecificos.setText("Información no disponible");
+        lblDirector.setText("Información no disponible");
+        lblCodirector.setText("Información no disponible");
+        lblEstudiante1.setText("Información no disponible");
+        lblEstudiante2.setText("Información no disponible");
+
         // Controlar visibilidad de sección "Subir nueva versión"
-        boolean puedeSubir = proyecto.getEstado() == enumEstadoProyecto.RECHAZADO
-                && proyecto.getNumeroIntentos() != null
-                && proyecto.getNumeroIntentos() < 3;
+        boolean puedeSubir = "RECHAZADO".equals(formatoA.getEstado())
+                && formatoA.getVersion() != null
+                && formatoA.getVersion() < 3;
 
         panelNuevaVersion.setVisible(puedeSubir);
         btnSubirVersion.setVisible(puedeSubir);
 
-        if (!puedeSubir) {
-            if (proyecto.getNumeroIntentos() != null && proyecto.getNumeroIntentos() >= 3) {
-                JOptionPane.showMessageDialog(this,
-                        "Has alcanzado el máximo de 3 intentos.\nNo puedes subir más versiones de este proyecto.",
-                        "Máximo de intentos alcanzado", JOptionPane.WARNING_MESSAGE);
-            }
+        if (!puedeSubir && formatoA.getVersion() != null && formatoA.getVersion() >= 3) {
+            JOptionPane.showMessageDialog(this,
+                    "Has alcanzado el máximo de 3 intentos.\n" +
+                            "No puedes subir más versiones de este proyecto.",
+                    "Máximo de intentos alcanzado",
+                    JOptionPane.WARNING_MESSAGE);
         }
 
-        // Configurar disponibilidad de la carta según modalidad
-        boolean reqCarta = proyecto.getModalidad() == enumModalidad.PRACTICA_PROFESIONAL;
-        dfNuevaCarta.setEnabled(reqCarta);
-        if (reqCarta) {
-            dfNuevaCarta.setLine2("Solo un archivo PDF - OBLIGATORIO para Práctica profesional");
-        } else {
-            dfNuevaCarta.setLine2("No requerido para esta modalidad");
-            dfNuevaCarta.clear();
-        }
+        // Deshabilitar edición de objetivos (no tenemos esos datos)
+        taObjGeneral.setEditable(false);
+        taObjEspecificos.setEditable(false);
+        taObjGeneral.setBackground(new Color(250, 250, 250));
+        taObjEspecificos.setBackground(new Color(250, 250, 250));
+    }
 
-        // Controlar edición de objetivos
-        boolean puedeEditarObjetivos = puedeSubir;
-        taObjGeneral.setEditable(puedeEditarObjetivos);
-        taObjEspecificos.setEditable(puedeEditarObjetivos);
-
-        if (puedeEditarObjetivos) {
-            taObjGeneral.setBackground(Color.WHITE);
-            taObjEspecificos.setBackground(Color.WHITE);
-        } else {
-            taObjGeneral.setBackground(new Color(250, 250, 250));
-            taObjEspecificos.setBackground(new Color(250, 250, 250));
+    // Nuevos métodos para estados de Formato A
+    private String obtenerTextoEstadoFormato(String estado) {
+        switch (estado) {
+            case "PENDIENTE": return "⏳ Pendiente de Evaluación";
+            case "APROBADO": return "✓ Aprobado";
+            case "RECHAZADO": return "⚠ Rechazado";
+            default: return estado;
         }
     }
 
-    private String obtenerTextoEstado(enumEstadoProyecto estado) {
+    private Color obtenerColorEstadoFormato(String estado) {
         switch (estado) {
-            case EN_PROCESO: return "⏳ En Proceso";
-            case RECHAZADO: return "⚠ Rechazado";
-            case APROBADO: return "✓ Aprobado";
-            case RECHAZADO_DEFINITIVO: return "✕ Rechazado Definitivo";
-            default: return estado.toString();
-        }
-    }
-
-    private Color obtenerColorEstado(enumEstadoProyecto estado) {
-        switch (estado) {
-            case EN_PROCESO: return C_AMARILLO;
-            case RECHAZADO: return C_ROJO_1;
-            case APROBADO: return C_VERDE;
-            case RECHAZADO_DEFINITIVO: return new Color(120, 0, 0);
+            case "PENDIENTE": return C_AMARILLO;
+            case "APROBADO": return C_VERDE;
+            case "RECHAZADO": return C_ROJO_1;
             default: return Color.BLACK;
         }
     }
 
-    // ========== Validación ==========
 
+    // ========== Validación ==========
     private boolean validarNuevaVersion() {
         if (!dfNuevoFormatoA.hasFile()) {
             JOptionPane.showMessageDialog(this,
@@ -413,30 +392,8 @@ public class DetalleProyectoModal extends JPanel {
             return false;
         }
 
-        // Validar objetivos
-        if (taObjGeneral.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "El Objetivo General no puede estar vacío.",
-                    "Campo requerido", JOptionPane.WARNING_MESSAGE);
-            return false;
-        }
-
-        if (taObjEspecificos.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "Los Objetivos Específicos no pueden estar vacíos.",
-                    "Campo requerido", JOptionPane.WARNING_MESSAGE);
-            return false;
-        }
-
-        // Validar carta si es práctica profesional
-        if (proyecto != null && proyecto.getModalidad() == enumModalidad.PRACTICA_PROFESIONAL) {
-            if (!dfNuevaCarta.hasFile()) {
-                JOptionPane.showMessageDialog(this,
-                        "Debes adjuntar la nueva Carta de Aceptación para Práctica profesional.",
-                        "Campo requerido", JOptionPane.WARNING_MESSAGE);
-                return false;
-            }
-        }
+        // NOTA: Validación de carta se haría si supiéramos la modalidad
+        // Por ahora asumimos que no es obligatoria
 
         return true;
     }
@@ -451,13 +408,8 @@ public class DetalleProyectoModal extends JPanel {
         return dfNuevaCarta.getFile();
     }
 
-    public String getObjetivoGeneral() {
-        return taObjGeneral.getText().trim();
-    }
 
-    public String getObjetivosEspecificos() {
-        return taObjEspecificos.getText().trim();
-    }
+
 
     public Long getProyectoId() {
         return proyectoId;

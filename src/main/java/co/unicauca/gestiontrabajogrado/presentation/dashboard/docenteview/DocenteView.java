@@ -1,11 +1,13 @@
 package co.unicauca.gestiontrabajogrado.presentation.dashboard.docenteview;
 
-import co.unicauca.gestiontrabajogrado.controller.DocenteController;
-import co.unicauca.gestiontrabajogrado.domain.model.User;
-import co.unicauca.gestiontrabajogrado.domain.model.enumModalidad;
-import co.unicauca.gestiontrabajogrado.dto.ProyectoGradoRequestDTO;
-import co.unicauca.gestiontrabajogrado.dto.ProyectoGradoResponseDTO;
-import co.unicauca.gestiontrabajogrado.dto.FormatoADetalleDTO;
+import co.unicauca.gestiontrabajogrado.application.controllers.DocenteController;
+import co.unicauca.gestiontrabajogrado.application.controllers.FormatoAController;
+import co.unicauca.gestiontrabajogrado.application.controllers.AnteproyectoController;
+import co.unicauca.gestiontrabajogrado.application.session.SessionManager;
+import co.unicauca.gestiontrabajogrado.domain.dto.identity.UserProfile;
+import co.unicauca.gestiontrabajogrado.domain.dto.submission.FormatoAData;
+import co.unicauca.gestiontrabajogrado.domain.dto.submission.FormatoAView;
+import co.unicauca.gestiontrabajogrado.domain.dto.submission.FormatoAPage;
 import co.unicauca.gestiontrabajogrado.presentation.common.GradientePanel;
 import java.io.File;
 
@@ -16,7 +18,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.text.Normalizer;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
@@ -35,9 +36,9 @@ public class DocenteView extends JFrame {
     static final Font  F_BODY = new Font("SansSerif", Font.PLAIN, 14);
 
     // ===== Estado =====
-    private User currentUser;
+    private final SessionManager sessionManager;
 
-    // >>> NUEVO: referencia al controller (para llamar handleCrearProyecto)
+    // >>> NUEVO: referencia al controllers (para llamar handleCrearProyecto)
     private DocenteController controller = new DocenteController(); // Inicializar por defecto
 
     // ===== UI raíz =====
@@ -64,6 +65,9 @@ public class DocenteView extends JFrame {
         setMinimumSize(new Dimension(1240, 800));
         setLocationRelativeTo(null);
 
+        // Inicializar SessionManager
+        this.sessionManager = SessionManager.getInstance();
+
         // Configurar automáticamente el logout para que funcione
         this.onLogout = () -> {
             if (controller != null) {
@@ -86,16 +90,18 @@ public class DocenteView extends JFrame {
 
         homePanel.btnMenu.addActionListener(this::mostrarMenu);
         homePanel.setOnProyectoClick(this::abrirModalDetalleProyecto);
-    }
-    public DocenteView(User user) {
-        this();
-        setUser(user);
+
+        // Cargar propuestas del docente al iniciar
+        SwingUtilities.invokeLater(this::cargarPropuestas);
+
+        // Actualizar avatar con datos del usuario actual
+        actualizarAvatar();
     }
 
-    // ===== Conexión con controller (NUEVO) =====
+    // ===== Conexión con controllers (NUEVO) =====
     public void setController(DocenteController controller){
         this.controller = controller;
-        // si quieres, cableo también el logout al controller:
+        // si quieres, cableo también el logout al controllers:
         setOnLogout(() -> {
             if (this.controller != null) this.controller.handleCerrarSesion();
         });
@@ -107,17 +113,24 @@ public class DocenteView extends JFrame {
 
     // Datos reales
     public void setEstudiantes(List<String> nombres){ homePanel.listEstudiantes.setData(nombres); }
-    public void setPropuestas(List<PropuestaItem> items){ homePanel.listPropuestas.setData(items); }
 
-    public void setUser(User user){
-        this.currentUser = user;
-        homePanel.setAvatarText(inicialesDe(user));
+    /**
+     * Actualiza el avatar con las iniciales del usuario autenticado
+     */
+    private void actualizarAvatar() {
+        UserProfile user = sessionManager.getCurrentUser();
+        if (user != null) {
+            homePanel.setAvatarText(inicialesDe(user));
+        }
     }
 
-    private static String inicialesDe(User u){
+    /**
+     * Obtiene las iniciales del usuario a partir de UserProfile
+     */
+    private static String inicialesDe(UserProfile u){
         if (u == null) return "CC";
-        String n = (u.getNombre() != null ? u.getNombre() : "").trim();
-        String a = (u.getApellido()!= null ? u.getApellido(): "").trim();
+        String n = (u.getNombres() != null ? u.getNombres() : "").trim();
+        String a = (u.getApellidos()!= null ? u.getApellidos(): "").trim();
         String i1 = n.isEmpty()? "" : n.substring(0,1);
         String i2 = a.isEmpty()? "" : a.substring(0,1);
         String r = (i1 + i2).toUpperCase();
@@ -193,33 +206,68 @@ public class DocenteView extends JFrame {
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return b;
     }
+
     private void abrirModalDetalleProyecto(PropuestaItem item) {
         if (controller == null) return;
 
-        ProyectoGradoResponseDTO proyecto = controller.obtenerProyectoPorId(item.id);
-        FormatoADetalleDTO formato = controller.obtenerUltimoFormatoA(item.id);
+        // Obtener detalle del Formato A
+        controller.obtenerFormatoA(item.id.longValue(),
+                new FormatoAController.DetailCallback() {
+                    @Override
+                    public void onSuccess(FormatoAView view) {
+                        SwingUtilities.invokeLater(() -> {
+                            // Construir ProyectoView para el modal
+                            // NOTA: Aquí necesitarías obtener datos adicionales del proyecto
+                            // Por ahora mostramos solo datos del Formato A
 
-        if (proyecto == null) {
-            JOptionPane.showMessageDialog(this, "No se pudo cargar el proyecto",
-                    "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
+                            modalDetalle.cargarFormatoA(view);
 
-        modalDetalle.cargarProyecto(proyecto, formato);
+                            modalDetalle.setOnSubmit(() -> {
+                                // Reenviar nueva versión (RF4)
+                                Long proyectoId = view.getProyectoId();
+                                File nuevoFormatoA = modalDetalle.getNuevoFormatoA();
+                                File nuevaCarta = modalDetalle.getNuevaCarta();
 
-        modalDetalle.setOnSubmit(() -> {
-            boolean exitoso = controller.handleSubirNuevaVersion(
-                    modalDetalle.getProyectoId(),
-                    modalDetalle.getNuevoFormatoA(),
-                    modalDetalle.getNuevaCarta(),
-                    modalDetalle.getObjetivoGeneral(),        // NUEVO
-                    modalDetalle.getObjetivosEspecificos()    // NUEVO
-            );
-            if (exitoso) modalLayer.cerrar();
-        });
+                                controller.reenviarFormatoA(proyectoId, nuevoFormatoA, nuevaCarta,
+                                        new FormatoAController.ResultCallback() {
+                                            @Override
+                                            public void onSuccess(String message, Long id) {
+                                                SwingUtilities.invokeLater(() -> {
+                                                    JOptionPane.showMessageDialog(DocenteView.this,
+                                                            message, "Éxito",
+                                                            JOptionPane.INFORMATION_MESSAGE);
+                                                    modalLayer.cerrar();
+                                                    cargarPropuestas(); // Refrescar lista
+                                                });
+                                            }
 
-        modalDetalle.setOnCancel(modalLayer::cerrar);
-        modalLayer.showModal(modalDetalle, modalDetalle::reset, new Dimension(900, 700));
+                                            @Override
+                                            public void onError(String errorMessage) {
+                                                SwingUtilities.invokeLater(() -> {
+                                                    JOptionPane.showMessageDialog(DocenteView.this,
+                                                            errorMessage, "Error",
+                                                            JOptionPane.ERROR_MESSAGE);
+                                                });
+                                            }
+                                        });
+                            });
+
+                            modalDetalle.setOnCancel(modalLayer::cerrar);
+                            modalLayer.showModal(modalDetalle, modalDetalle::reset,
+                                    new Dimension(900, 700));
+                        });
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        SwingUtilities.invokeLater(() -> {
+                            JOptionPane.showMessageDialog(DocenteView.this,
+                                    "Error al cargar detalle: " + errorMessage,
+                                    "Error",
+                                    JOptionPane.ERROR_MESSAGE);
+                        });
+                    }
+                });
     }
 
     // ===== Menú del docente (☰) =====
@@ -238,77 +286,121 @@ public class DocenteView extends JFrame {
         Component src = (Component) ev.getSource();
         menu.show(src, 0, src.getHeight());
     }
-
     private void abrirModalSubir() {
         modalSubir.setOnSubmitValid(() -> {
-            ProyectoGradoRequestDTO req = modalSubir.construirDTO();
+            FormatoAData data = modalSubir.construirFormatoAData();
             java.io.File formatoA = modalSubir.getFormatoA();
             java.io.File carta = modalSubir.getCartaEmpresa();
 
             if (controller != null) {
-                boolean exitoso = controller.handleCrearProyecto(req, formatoA, carta);
+                controller.crearFormatoA(data, formatoA, carta,
+                        new FormatoAController.ResultCallback() {
+                            @Override
+                            public void onSuccess(String message, Long id) {
+                                SwingUtilities.invokeLater(() -> {
+                                    JOptionPane.showMessageDialog(DocenteView.this,
+                                            "✅ Formato A creado exitosamente.\n" +
+                                                    "ID: " + id + "\n\n" +
+                                                    "El proyecto será evaluado por el coordinador.",
+                                            "Éxito",
+                                            JOptionPane.INFORMATION_MESSAGE);
+                                    modalLayer.cerrar();
+                                    // Opcional: Refrescar lista de propuestas
+                                    cargarPropuestas();
+                                });
+                            }
 
-                if (exitoso) {
-                    // Mostrar mensaje de confirmación
-                    JOptionPane.showMessageDialog(this,
-                            "✅ La propuesta \"" + req.getTitulo() + "\" ha sido guardada exitosamente.\n\n" +
-                            "El proyecto será evaluado por el coordinador.",
-                            "Propuesta Guardada",
-                            JOptionPane.INFORMATION_MESSAGE);
-
-                    modalLayer.cerrar();  // ← Solo cierra si fue exitoso
-                } else {
-                    // Mostrar mensaje de error
-                    JOptionPane.showMessageDialog(this,
-                            "❌ No se pudo guardar la propuesta.\n\n" +
-                            "Por favor, verifica los datos e intenta nuevamente.",
-                            "Error al Guardar",
-                            JOptionPane.ERROR_MESSAGE);
-                }
-            } else {
-                JOptionPane.showMessageDialog(this,
-                        "Controller no conectado", "Error", JOptionPane.ERROR_MESSAGE);
+                            @Override
+                            public void onError(String errorMessage) {
+                                SwingUtilities.invokeLater(() -> {
+                                    JOptionPane.showMessageDialog(DocenteView.this,
+                                            "❌ Error al crear Formato A:\n" + errorMessage,
+                                            "Error",
+                                            JOptionPane.ERROR_MESSAGE);
+                                });
+                            }
+                        });
             }
         });
 
         modalSubir.setOnCancel(modalLayer::cerrar);
         modalLayer.showModal(modalSubir, modalSubir::reset, new Dimension(920, 620));
     }
-    
     private void abrirModalSubirAnteproyecto() {
-        // Importar el controller de RF6
-        co.unicauca.gestiontrabajogrado.controller.SubirAnteproyectoController anteproyectoController =
-            new co.unicauca.gestiontrabajogrado.controller.SubirAnteproyectoController();
-
         modalSubirAnteproyecto.setOnSubmitValid(() -> {
-            // Captura datos según RF6: solo proyectoId y archivo PDF
             Long proyectoId = modalSubirAnteproyecto.getProyectoId();
             File archivo = modalSubirAnteproyecto.getArchivoPDF();
 
-            // Delegar al controller la validación y envío
-            anteproyectoController.subirAnteproyecto(proyectoId, archivo, modalSubirAnteproyecto);
+            if (controller != null) {
+                controller.subirAnteproyecto(proyectoId, archivo,
+                        new AnteproyectoController.ResultCallback() {
+                            @Override
+                            public void onSuccess(String message, Long id) {
+                                SwingUtilities.invokeLater(() -> {
+                                    JOptionPane.showMessageDialog(DocenteView.this,
+                                            "✅ Anteproyecto subido exitosamente.\n" +
+                                                    "ID: " + id + "\n\n" +
+                                                    "El anteproyecto está ahora en revisión.",
+                                            "Éxito",
+                                            JOptionPane.INFORMATION_MESSAGE);
+                                    modalSubirAnteproyecto.limpiar();
+                                    modalLayer.cerrar();
+                                });
+                            }
 
-            // Si llegamos aquí sin excepción, fue exitoso
-            modalSubirAnteproyecto.limpiar();
-            modalLayer.cerrar();
+                            @Override
+                            public void onError(String errorMessage) {
+                                SwingUtilities.invokeLater(() -> {
+                                    JOptionPane.showMessageDialog(DocenteView.this,
+                                            "❌ Error al subir anteproyecto:\n" + errorMessage,
+                                            "Error",
+                                            JOptionPane.ERROR_MESSAGE);
+                                });
+                            }
+                        });
+            }
         });
 
         modalSubirAnteproyecto.setOnCancel(modalLayer::cerrar);
-        modalLayer.showModal(modalSubirAnteproyecto, modalSubirAnteproyecto::limpiar, new Dimension(700, 460));
+        modalLayer.showModal(modalSubirAnteproyecto, modalSubirAnteproyecto::limpiar,
+                new Dimension(700, 460));
+    }
+    /**
+     * Carga las propuestas del docente actual
+     */
+    private void cargarPropuestas() {
+        if (controller == null) return;
+
+        controller.listarMisFormatoA(0, 20, new FormatoAController.ListCallback() {
+            @Override
+            public void onSuccess(FormatoAPage page) {
+                SwingUtilities.invokeLater(() -> {
+                    List<PropuestaItem> items = new ArrayList<>();
+
+                    if (page.getContent() != null) {
+                        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm");
+                        for (FormatoAView view : page.getContent()) {
+                            items.add(new PropuestaItem(
+                                    "Proyecto #" + view.getProyectoId(), // Título temporal
+                                    sdf.format(view.getFechaEnvio()),
+                                    view.getProyectoId().intValue(),
+                                    view.getEstado(),
+                                    view.getVersion()
+                            ));
+                        }
+                    }
+
+                    homePanel.listPropuestas.setData(items);
+                });
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                System.err.println("Error al cargar propuestas: " + errorMessage);
+            }
+        });
     }
 
-
-    // --- mapeo seguro de las 3 modalidades del combo a tu enum del dominio ---
-    private static enumModalidad toEnumModalidad(String etiqueta){
-        if (etiqueta == null) return null;
-        String s = Normalizer.normalize(etiqueta, Normalizer.Form.NFD)
-                              .replaceAll("\\p{M}", "")
-                              .toLowerCase().trim();
-        //if (s.startsWith("plan"))            //return enumModalidad.PLAN_COTERMINAL;
-        if (s.startsWith("invest"))          return enumModalidad.INVESTIGACION;
-        if (s.startsWith("practica"))        return enumModalidad.PRACTICA_PROFESIONAL;
-        return null;
-    }
 
     // ============================ HOME ============================
     private static class HomePanel extends JPanel {

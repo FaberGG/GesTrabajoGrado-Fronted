@@ -18,7 +18,7 @@ public class SubirAnteproyectoModal extends JPanel {
     final DropFileField dfPDF = new DropFileField();
 
     // Listener para cuando se valida y se envía el formulario
-    // Los datos los extrae el controller: proyectoId y archivo PDF
+    // Los datos los extrae el controllers: proyectoId y archivo PDF
     private Runnable onSubmitValid = () -> {};
     private Runnable onCancel = () -> {};
 
@@ -179,7 +179,7 @@ public class SubirAnteproyectoModal extends JPanel {
         return l;
     }
 
-    // Getters para integración con el controller
+    // Getters para integración con el controllers
     public Long getProyectoId() {
         try {
             String text = tfProyectoId.getText().trim();
