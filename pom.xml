@@ -13,13 +13,19 @@
     <description>Cliente de escritorio Swing para Gestión de Trabajos de Grado</description>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
 
     <dependencies>
+        <!-- Jackson para serialización/deserialización JSON -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.15.2</version>
+        </dependency>
         <!-- Lombok para reducir boilerplate -->
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -27,7 +33,17 @@
             <version>1.18.30</version>
             <scope>provided</scope>
         </dependency>
-
+        <!-- SLF4J para logging (opcional pero recomendado) -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.7</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>2.0.7</version>
+        </dependency>
         <!-- Cliente HTTP para llamar a los microservicios -->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
@@ -40,6 +56,12 @@
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>2.10.1</version>
+        </dependency>
+        <!-- Jackson para soporte de Java 8 Date/Time API (LocalDateTime) -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>2.15.2</version>
         </dependency>
 
         <!-- LGoodDatePicker para selector de fecha en Swing -->
