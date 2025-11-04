@@ -242,8 +242,8 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         mainInfoPanel.add(topInfoPanel, BorderLayout.NORTH);
 
         // Panel de estudiantes
-        String estudiantes = controller.getCurrentUser().getNombres() + " " +
-                controller.getCurrentUser().getApellidos();
+        String estudiantes = controller.getCurrentUser().getNombre() + " " +
+                controller.getCurrentUser().getApellido();
 
         JPanel estudiantesPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         estudiantesPanel.setBackground(Color.WHITE);
