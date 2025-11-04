@@ -31,7 +31,9 @@ public class ReviewService {
     private final String baseUrl;
 
     public ReviewService() {
-        this.httpClient = new OkHttpClient();
+        this.httpClient = new OkHttpClient.Builder()
+                .protocols(java.util.Arrays.asList(Protocol.HTTP_1_1)) // Forzar HTTP/1.1
+                .build();
         this.gson = new GsonBuilder()
                 .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
                 .create();
@@ -247,6 +249,11 @@ public class ReviewService {
                 .addQueryParameter("page", String.valueOf(page))
                 .addQueryParameter("size", String.valueOf(size));
 
+        String url = urlBuilder.build().toString();
+        System.out.println("🔍 DEBUG REVIEW - URL: " + url);
+        System.out.println("🔍 DEBUG REVIEW - Token: " + (sessionManager.getToken() != null ? "Presente" : "NULL"));
+        System.out.println("🔍 DEBUG REVIEW - Rol: " + sessionManager.getUserRole());
+
         Request request = new Request.Builder()
                 .url(urlBuilder.build())
                 .header("Authorization", "Bearer " + sessionManager.getToken())
@@ -255,12 +262,17 @@ public class ReviewService {
                 .build();
 
         try (Response response = httpClient.newCall(request).execute()) {
+            System.out.println("🔍 DEBUG REVIEW - Código respuesta: " + response.code());
+            System.out.println("🔍 DEBUG REVIEW - HTTP version: " + response.protocol());
+
             if (!response.isSuccessful()) {
                 String errorMsg = response.body() != null ? response.body().string() : "Error desconocido";
+                System.err.println("❌ DEBUG REVIEW - Error body: " + errorMsg);
                 throw new NetworkException("Error al obtener Formatos A pendientes: " + response.code() + " - " + errorMsg);
             }
 
             String responseBody = response.body().string();
+            System.out.println("🔍 DEBUG REVIEW - Response body: " + responseBody);
 
             // El Review Service devuelve: ApiResponse<PageResponse<FormatoAReviewDTO>>
             Type responseType = new TypeToken<ApiResponse<PageResponse<FormatoAReviewDTO>>>(){}.getType();
@@ -277,6 +289,8 @@ public class ReviewService {
             return pageResponse != null ? pageResponse.getContent() : List.of();
 
         } catch (IOException e) {
+            System.err.println("❌ DEBUG REVIEW - IOException: " + e.getMessage());
+            e.printStackTrace();
             throw new NetworkException("Fallo en la conexión al servicio de revisión.", e);
         }
     }

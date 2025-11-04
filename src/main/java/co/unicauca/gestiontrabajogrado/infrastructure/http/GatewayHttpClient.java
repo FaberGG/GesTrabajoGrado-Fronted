@@ -27,6 +27,7 @@ public class GatewayHttpClient {
         this.baseUrl = baseUrl;
         this.gson = new Gson();
         this.client = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1) // Forzar HTTP/1.1 para evitar error 413
                 .connectTimeout(Duration.ofSeconds(30))
                 .build();
     }
@@ -245,6 +246,15 @@ public class GatewayHttpClient {
 
         byte[] bodyBytes = baos.toByteArray();
 
+        // DEBUG: Log del tamaño
+        System.out.println("🔍 DEBUG MULTIPART - URL: " + baseUrl + path);
+        System.out.println("🔍 DEBUG MULTIPART - Tamaño total: " + bodyBytes.length + " bytes (" + (bodyBytes.length / 1024) + " KB)");
+        if (files != null) {
+            for (MultipartFile file : files) {
+                System.out.println("🔍 DEBUG MULTIPART - Archivo: " + file.getFilename() + " (" + file.getContent().length + " bytes)");
+            }
+        }
+
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + path))
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
@@ -257,7 +267,11 @@ public class GatewayHttpClient {
         }
 
         HttpRequest request = requestBuilder.build();
+
+        System.out.println("🔍 DEBUG MULTIPART - Enviando petición...");
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println("🔍 DEBUG MULTIPART - Versión HTTP: " + response.version());
+        System.out.println("🔍 DEBUG MULTIPART - Código respuesta: " + response.statusCode());
 
         if (response.statusCode() >= 200 && response.statusCode() < 300) {
             if (responseType == Void.class || response.body() == null || response.body().isEmpty()) {
