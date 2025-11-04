@@ -1,9 +1,14 @@
 package co.unicauca.gestiontrabajogrado.domain.dto.identity;
 
+import com.google.gson.annotations.SerializedName;
+
 public class RegisterRequest {
     private String nombres;
     private String apellidos;
-    private String celular;
+
+    @SerializedName("celular")
+    private Long celularNumerico;  // Cambiado a Long para que se serialice como número
+
     private String programa;
     private String rol;
     private String email;
@@ -17,7 +22,18 @@ public class RegisterRequest {
                            String rol, String email, String password) {
         this.nombres = nombres;
         this.apellidos = apellidos;
-        this.celular = celular;
+
+        // Convertir celular String a Long (puede ser null si está vacío)
+        if (celular != null && !celular.trim().isEmpty()) {
+            try {
+                this.celularNumerico = Long.parseLong(celular.trim());
+            } catch (NumberFormatException e) {
+                this.celularNumerico = null;
+            }
+        } else {
+            this.celularNumerico = null;
+        }
+
         this.programa = programa;
         this.rol = rol;
         this.email = email;
@@ -41,12 +57,12 @@ public class RegisterRequest {
         this.apellidos = apellidos;
     }
 
-    public String getCelular() {
-        return celular;
+    public Long getCelularNumerico() {
+        return celularNumerico;
     }
 
-    public void setCelular(String celular) {
-        this.celular = celular;
+    public void setCelularNumerico(Long celularNumerico) {
+        this.celularNumerico = celularNumerico;
     }
 
     public String getPrograma() {

@@ -9,6 +9,7 @@ public class HttpClientFactory {
     public static HttpClient getInstance() {
         if (instance == null) {
             instance = HttpClient.newBuilder()
+                    .version(HttpClient.Version.HTTP_1_1) // Forzar HTTP/1.1 (como curl)
                     .connectTimeout(Duration.ofSeconds(10))
                     .build();
         }

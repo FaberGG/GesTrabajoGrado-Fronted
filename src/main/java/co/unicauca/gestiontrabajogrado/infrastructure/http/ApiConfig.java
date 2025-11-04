@@ -24,15 +24,15 @@ public class ApiConfig {
     }
 
     public String getIdentityLoginUrl() {
-        return apiGatewayUrl + "/api/identity/auth/login";
+        return apiGatewayUrl + "/api/auth/login";
     }
 
     public String getIdentityRegisterUrl() {
-        return apiGatewayUrl + "/api/identity/auth/register";
+        return apiGatewayUrl + "/api/auth/register";
     }
 
     public String getIdentityProfileUrl() {
-        return apiGatewayUrl + "/api/identity/auth/profile";
+        return apiGatewayUrl + "/api/auth/profile";
     }
 
     /**

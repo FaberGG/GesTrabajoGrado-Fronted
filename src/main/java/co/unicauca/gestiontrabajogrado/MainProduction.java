@@ -45,9 +45,17 @@ public class MainProduction {
             try {
                 // Mostrar splash screen (opcional)
                 showSplashScreen();
-
-                // Crear y mostrar la vista de login
+                // Crear la vista de login
                 LoginView loginView = new LoginView();
+
+                // Crear el controlador
+                co.unicauca.gestiontrabajogrado.application.controllers.LoginController loginController =
+                        new co.unicauca.gestiontrabajogrado.application.controllers.LoginController(loginView);
+
+                // Conectar vista y controlador
+                loginView.setController(loginController);
+
+                // Mostrar la ventana
                 loginView.setVisible(true);
 
                 System.out.println("✅ Aplicación iniciada correctamente");
