@@ -43,6 +43,13 @@ public class SessionManager {
     }
 
     /**
+     * Obtiene el usuario actual
+     */
+    public UserProfile getCurrentUser() {
+        return currentUser;
+    }
+
+    /**
      * Cierra la sesión limpiando los datos
      */
     public void logout() {
