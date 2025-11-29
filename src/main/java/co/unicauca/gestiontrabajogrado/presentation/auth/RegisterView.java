@@ -393,7 +393,8 @@ public class RegisterView extends JFrame {
         RolItem[] rolItems = {
                 new RolItem(null, "Rol *"),
                 new RolItem(Rol.ESTUDIANTE, "Estudiante"),
-                new RolItem(Rol.DOCENTE, "Docente")
+                new RolItem(Rol.DOCENTE, "Docente"),
+                new RolItem(Rol.JEFE_DEPARTAMENTO, "Jefe Departamento")
         };
 
         JComboBox<RolItem> comboBox = new JComboBox<RolItem>(rolItems) {
