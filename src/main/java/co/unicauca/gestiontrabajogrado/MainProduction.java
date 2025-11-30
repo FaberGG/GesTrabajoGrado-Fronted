@@ -58,13 +58,13 @@ public class MainProduction {
                 // Mostrar la ventana
                 loginView.setVisible(true);
 
-                System.out.println("✅ Aplicación iniciada correctamente");
-                System.out.println("📍 Modo: PRODUCCIÓN");
-                System.out.println("🌐 API Gateway: " + System.getProperty("api.gateway.url"));
+                System.out.println("Aplicación iniciada correctamente");
+                System.out.println("Modo: PRODUCCIÓN");
+                System.out.println("API Gateway: " + System.getProperty("api.gateway.url"));
                 System.out.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
             } catch (Exception e) {
-                System.err.println("❌ Error crítico al iniciar la aplicación");
+                System.err.println("Error crítico al iniciar la aplicación");
                 e.printStackTrace();
 
                 JOptionPane.showMessageDialog(

@@ -114,7 +114,7 @@ public class SubirAnteproyectoModal extends JPanel {
         btnCancelar.setBorder(new EmptyBorder(8, 30, 8, 30));
         btnCancelar.addActionListener(e -> onCancel.run());
 
-        JButton btnEnviar = new JButton("Enviar Anteproyecto"); btnEnviar.setFont(F_BODY);
+        JButton btnEnviar = new JButton("Validar y Enviar"); btnEnviar.setFont(F_BODY);
         btnEnviar.setBackground(C_ROJO_1); btnEnviar.setForeground(Color.WHITE);
         btnEnviar.setBorder(new EmptyBorder(8, 30, 8, 30));
         btnEnviar.addActionListener(e -> {
@@ -148,7 +148,43 @@ public class SubirAnteproyectoModal extends JPanel {
             }
 
             if (valid) {
-                onSubmitValid.run();
+                // NUEVA VALIDACIÓN: Verificar estado del proyecto antes de enviar
+                btnEnviar.setEnabled(false);
+                btnEnviar.setText("Validando estado...");
+
+                // Crear controlador temporal para validar
+                co.unicauca.gestiontrabajogrado.application.controllers.AnteproyectoController controller =
+                    new co.unicauca.gestiontrabajogrado.application.controllers.AnteproyectoController();
+
+                Long proyectoId = Long.parseLong(proyectoIdText);
+
+                controller.validarEstadoProyecto(proyectoId,
+                    new co.unicauca.gestiontrabajogrado.application.controllers.AnteproyectoController.EstadoValidationCallback() {
+                    @Override
+                    public void onSuccess(String message) {
+                        // El estado es válido, proceder con el envío
+                        SwingUtilities.invokeLater(() -> {
+                            btnEnviar.setEnabled(true);
+                            btnEnviar.setText("Enviar Anteproyecto");
+                            onSubmitValid.run();
+                        });
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        // El estado no es válido, mostrar error
+                        SwingUtilities.invokeLater(() -> {
+                            btnEnviar.setEnabled(true);
+                            btnEnviar.setText("Validar y Enviar");
+                            JOptionPane.showMessageDialog(
+                                SubirAnteproyectoModal.this,
+                                errorMessage,
+                                "Validación de Estado",
+                                JOptionPane.WARNING_MESSAGE
+                            );
+                        });
+                    }
+                });
             }
         });
 

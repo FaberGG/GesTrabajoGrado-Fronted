@@ -58,7 +58,12 @@ public class FormatoAController {
             protected void done() {
                 try {
                     Long id = get();
-                    callback.onSuccess("Formato A creado exitosamente con ID: " + id, id);
+                    callback.onSuccess(
+                        "Formato A creado exitosamente con ID: " + id + "\n\n" +
+                        "Se ha enviado una notificación asíncrona al coordinador.\n" +
+                        "El coordinador recibirá un email para evaluar su propuesta.",
+                        id
+                    );
                 } catch (Exception e) {
                     String errorMsg = extractErrorMessage(e);
                     callback.onError("Error al crear Formato A: " + errorMsg);
@@ -97,7 +102,12 @@ public class FormatoAController {
             protected void done() {
                 try {
                     Long id = get();
-                    callback.onSuccess("Nueva versión enviada exitosamente con ID: " + id, id);
+                    callback.onSuccess(
+                        "Nueva versión enviada exitosamente con ID: " + id + "\n\n" +
+                        "Se ha enviado una notificación asíncrona al coordinador.\n" +
+                        "El coordinador recibirá un email para evaluar la nueva versión.",
+                        id
+                    );
                 } catch (Exception e) {
                     String errorMsg = extractErrorMessage(e);
                     callback.onError("Error al reenviar Formato A: " + errorMsg);

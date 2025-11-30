@@ -315,10 +315,20 @@ public class DetalleProyectoModal extends JPanel {
             lblEstado.setFont(F_BODY.deriveFont(Font.BOLD));
         }
 
-        lblIntentos.setText("Versión " + formatoA.getVersion() + " de 3");
-        if (formatoA.getVersion() != null && formatoA.getVersion() >= 3) {
+        // Mejorar el mensaje del indicador de intentos para que sea más claro
+        String mensajeIntento = "";
+        if (formatoA.getVersion() == 1) {
+            mensajeIntento = "PRIMER INTENTO (quedan 2 intentos más)";
+            lblIntentos.setForeground(C_VERDE);
+        } else if (formatoA.getVersion() == 2) {
+            mensajeIntento = "⚠SEGUNDO INTENTO (queda 1 intento más)";
+            lblIntentos.setForeground(C_AMARILLO);
+        } else if (formatoA.getVersion() >= 3) {
+            mensajeIntento = "TERCER INTENTO - Si es rechazado, el proyecto será rechazado definitivamente";
             lblIntentos.setForeground(C_ROJO_1);
         }
+        lblIntentos.setText(mensajeIntento);
+        lblIntentos.setFont(F_BODY.deriveFont(Font.BOLD));
 
         // Observaciones
         if (formatoA.getObservaciones() != null &&

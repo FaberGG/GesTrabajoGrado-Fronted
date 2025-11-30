@@ -42,7 +42,7 @@ public class RegisterController {
 
         // Validar contraseña
         if (!validatePassword(password)) {
-            view.showError("La contraseña debe tener al menos 8 caracteres, " +
+            view.showError("La contraseña debe tener al menos 6 caracteres, " +
                     "una mayúscula, un número y un carácter especial");
             return;
         }
@@ -150,13 +150,13 @@ public class RegisterController {
 
     /**
      * Valida la contraseña según los requisitos del backend
-     * - Mínimo 8 caracteres
+     * - Mínimo 6 caracteres
      * - Al menos una mayúscula
      * - Al menos un número
      * - Al menos un carácter especial
      */
     private boolean validatePassword(String password) {
-        if (password.length() < 8) {
+        if (password.length() < 6) {
             return false;
         }
 
