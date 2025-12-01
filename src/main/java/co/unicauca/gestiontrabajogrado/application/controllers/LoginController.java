@@ -187,9 +187,18 @@ public class LoginController {
     private void openJefeDepartamentoDashboard() {
         SwingUtilities.invokeLater(() -> {
             try {
-                co.unicauca.gestiontrabajogrado.presentation.dashboard.jefedepartamentoview.JefeDepartamentoView jefeView =
-                        new co.unicauca.gestiontrabajogrado.presentation.dashboard.jefedepartamentoview.JefeDepartamentoView();
+                // Crear el controlador primero
+                co.unicauca.gestiontrabajogrado.application.controllers.JefeDepartamentoController jefeController =
+                        new co.unicauca.gestiontrabajogrado.application.controllers.JefeDepartamentoController();
 
+                // Crear la vista con el controlador
+                co.unicauca.gestiontrabajogrado.presentation.dashboard.jefedepartamentoview.JefeDepartamentoView jefeView =
+                        new co.unicauca.gestiontrabajogrado.presentation.dashboard.jefedepartamentoview.JefeDepartamentoView(jefeController);
+
+                // Vincular controlador con vista
+                jefeController.setView(jefeView);
+
+                // Mostrar la vista
                 jefeView.setVisible(true);
 
                 System.out.println("✅ Dashboard de Jefe de Departamento abierto");
