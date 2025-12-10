@@ -84,6 +84,76 @@ public class DocenteController {
         formatoAController.obtenerFormatoA(id, callback);
     }
 
+    /**
+     * Obtiene los proyectos donde el docente autenticado es director o codirector
+     * Usa el endpoint /api/progress/proyectos/mis-proyectos
+     */
+    public void obtenerMisProyectos(MisProyectosCallback callback) {
+        SwingWorker<co.unicauca.gestiontrabajogrado.domain.dto.progress.MisProyectosDTO, Void> worker =
+            new SwingWorker<>() {
+                @Override
+                protected co.unicauca.gestiontrabajogrado.domain.dto.progress.MisProyectosDTO doInBackground() throws Exception {
+                    co.unicauca.gestiontrabajogrado.infrastructure.services.ProgressTrackingService service =
+                        new co.unicauca.gestiontrabajogrado.infrastructure.services.ProgressTrackingService();
+                    return service.obtenerMisProyectos();
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        co.unicauca.gestiontrabajogrado.domain.dto.progress.MisProyectosDTO proyectos = get();
+                        callback.onSuccess(proyectos);
+                    } catch (Exception e) {
+                        callback.onError("Error al obtener proyectos: " + e.getMessage());
+                    }
+                }
+            };
+        worker.execute();
+    }
+
+    /**
+     * Callback para obtener mis proyectos
+     */
+    public interface MisProyectosCallback {
+        void onSuccess(co.unicauca.gestiontrabajogrado.domain.dto.progress.MisProyectosDTO proyectos);
+        void onError(String errorMessage);
+    }
+
+    /**
+     * Obtiene el estado completo de un proyecto usando el tracking service (RF5)
+     * Usa el endpoint /api/progress/proyectos/{id}/estado
+     */
+    public void obtenerEstadoProyecto(Long proyectoId, EstadoProyectoCallback callback) {
+        SwingWorker<co.unicauca.gestiontrabajogrado.domain.dto.progress.ProyectoEstadoDTO, Void> worker =
+            new SwingWorker<>() {
+                @Override
+                protected co.unicauca.gestiontrabajogrado.domain.dto.progress.ProyectoEstadoDTO doInBackground() throws Exception {
+                    co.unicauca.gestiontrabajogrado.infrastructure.services.ProgressTrackingService service =
+                        new co.unicauca.gestiontrabajogrado.infrastructure.services.ProgressTrackingService();
+                    return service.obtenerEstadoProyecto(proyectoId);
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        co.unicauca.gestiontrabajogrado.domain.dto.progress.ProyectoEstadoDTO estado = get();
+                        callback.onSuccess(estado);
+                    } catch (Exception e) {
+                        callback.onError("Error al obtener estado del proyecto: " + e.getMessage());
+                    }
+                }
+            };
+        worker.execute();
+    }
+
+    /**
+     * Callback para obtener el estado completo de un proyecto
+     */
+    public interface EstadoProyectoCallback {
+        void onSuccess(co.unicauca.gestiontrabajogrado.domain.dto.progress.ProyectoEstadoDTO estado);
+        void onError(String errorMessage);
+    }
+
     // ==================== Validaciones ====================
 
     /**

@@ -68,6 +68,21 @@ public class CoordinadorController {
     }
 
     /**
+     * Obtiene el detalle completo de un Formato A (incluyendo proyectoId)
+     * Ejecuta en el hilo actual (debe ser llamado desde SwingWorker)
+     */
+    public co.unicauca.gestiontrabajogrado.domain.dto.submission.FormatoAView obtenerFormatoADetalle(Long formatoAId)
+            throws NetworkException {
+        try {
+            co.unicauca.gestiontrabajogrado.infrastructure.services.SubmissionService submissionService =
+                new co.unicauca.gestiontrabajogrado.infrastructure.services.SubmissionService();
+            return submissionService.obtenerFormatoA(formatoAId);
+        } catch (java.io.IOException | InterruptedException e) {
+            throw new NetworkException("Error al obtener detalles del Formato A: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Aprueba un Formato A
      * Ejecuta en background con SwingWorker
      *
@@ -182,12 +197,19 @@ public class CoordinadorController {
             }
         }
 
-        // Abrir ventana de login
+        // Abrir ventana de login con controlador inicializado
         SwingUtilities.invokeLater(() -> {
             try {
                 co.unicauca.gestiontrabajogrado.presentation.auth.LoginView loginView =
                         new co.unicauca.gestiontrabajogrado.presentation.auth.LoginView();
+
+                co.unicauca.gestiontrabajogrado.application.controllers.LoginController loginController =
+                        new co.unicauca.gestiontrabajogrado.application.controllers.LoginController(loginView);
+
+                loginView.setController(loginController);
                 loginView.setVisible(true);
+
+                System.out.println("✅ Login view abierta correctamente después de cerrar sesión");
             } catch (Exception e) {
                 e.printStackTrace();
                 JOptionPane.showMessageDialog(null,
@@ -206,6 +228,7 @@ public class CoordinadorController {
     private PropuestaRow mapToRow(FormatoAReviewDTO dto) {
         return new PropuestaRow(
                 dto.getFormatoAId() != null ? dto.getFormatoAId().intValue() : null,
+                dto.getProyectoId(), // Ahora incluimos el proyectoId para poder ver detalles
                 dto.getTitulo() != null ? dto.getTitulo() : "Sin título",
                 dto.getDocenteDirectorNombre() != null ? dto.getDocenteDirectorNombre() : "Sin director",
                 dto.getFechaCarga(),

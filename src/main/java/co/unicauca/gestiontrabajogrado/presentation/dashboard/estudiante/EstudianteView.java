@@ -43,8 +43,8 @@ public class EstudianteView extends JFrame {
         root.setBackground(UIConstants.BG_APP);
         setContentPane(root);
 
-        // Encabezado
-        HeaderPanel header = new HeaderPanel();
+        // Encabezado con logout
+        HeaderPanel header = new HeaderPanel(() -> handleLogout());
         root.add(header, BorderLayout.NORTH);
 
         // Cuerpo principal
@@ -117,71 +117,100 @@ public class EstudianteView extends JFrame {
      * Llamado por el controller después de cargar los datos
      */
     public void actualizarDatos() {
-        // Recrear el panel de trabajo de grado con los datos actualizados
-        Component[] components = contentPanel.getComponents();
+        SwingUtilities.invokeLater(() -> {
+            // Recrear el panel de trabajo de grado con los datos actualizados
+            Component[] components = contentPanel.getComponents();
 
-        // Buscar y reemplazar el panel de trabajo de grado
-        for (int i = 0; i < components.length; i++) {
-            Component comp = components[i];
-            if (comp instanceof EstudianteTrabajoGradoPanel) {
-                contentPanel.remove(comp);
-                contentPanel.add(
-                        new EstudianteTrabajoGradoPanel(controller, this),
-                        TRABAJO_GRADO_VIEW
-                );
-                break;
+            // Buscar y reemplazar el panel de trabajo de grado
+            for (Component comp : components) {
+                if (comp instanceof EstudianteTrabajoGradoPanel) {
+                    contentPanel.remove(comp);
+                    contentPanel.add(
+                            new EstudianteTrabajoGradoPanel(controller, this),
+                            TRABAJO_GRADO_VIEW
+                    );
+                    break;
+                }
             }
-        }
 
-        contentPanel.revalidate();
-        contentPanel.repaint();
+            // IMPORTANTE: Volver a mostrar la vista después de recrearla
+            cardLayout.show(contentPanel, TRABAJO_GRADO_VIEW);
+
+            contentPanel.revalidate();
+            contentPanel.repaint();
+
+            System.out.println("✅ Datos actualizados y vista mostrada correctamente");
+        });
     }
 
     /**
-     * Muestra un dialog de loading
+     * Muestra un dialog de loading (no modal para evitar bloqueos)
      */
     public void showLoading(String message) {
-        if (loadingDialog != null && loadingDialog.isVisible()) {
-            return; // Ya hay un loading activo
-        }
+        // Siempre ejecutar en EDT
+        SwingUtilities.invokeLater(() -> {
+            if (loadingDialog != null && loadingDialog.isVisible()) {
+                return; // Ya hay un loading activo
+            }
 
-        loadingDialog = new JDialog(this, "Cargando", true);
-        loadingDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-        loadingDialog.setUndecorated(true);
+            // Crear dialog NO MODAL para no bloquear
+            loadingDialog = new JDialog(this, "Cargando", false);
+            loadingDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+            loadingDialog.setUndecorated(true);
+            loadingDialog.setAlwaysOnTop(true); // Asegurar que esté visible
 
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(new EmptyBorder(30, 40, 30, 40));
-        panel.setBackground(Color.WHITE);
+            JPanel panel = new JPanel(new BorderLayout(0, 15));
+            panel.setBackground(Color.WHITE);
+            panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Color.decode("#D52E2E"), 3),
+                new EmptyBorder(30, 40, 30, 40)
+            ));
 
-        JLabel label = new JLabel(message, SwingConstants.CENTER);
-        label.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        label.setForeground(Color.decode("#2C2C2C"));
+            // Icono de carga animado
+            JLabel iconLabel = new JLabel("⏳", SwingConstants.CENTER);
+            iconLabel.setFont(new Font("SansSerif", Font.PLAIN, 32));
 
-        JProgressBar progressBar = new JProgressBar();
-        progressBar.setIndeterminate(true);
-        progressBar.setPreferredSize(new Dimension(250, 10));
+            JLabel label = new JLabel(message, SwingConstants.CENTER);
+            label.setFont(new Font("SansSerif", Font.BOLD, 14));
+            label.setForeground(Color.decode("#2C2C2C"));
 
-        panel.add(label, BorderLayout.CENTER);
-        panel.add(progressBar, BorderLayout.SOUTH);
+            JProgressBar progressBar = new JProgressBar();
+            progressBar.setIndeterminate(true);
+            progressBar.setPreferredSize(new Dimension(280, 8));
+            progressBar.setForeground(Color.decode("#D52E2E"));
 
-        loadingDialog.add(panel);
-        loadingDialog.pack();
-        loadingDialog.setLocationRelativeTo(this);
+            JPanel centerPanel = new JPanel(new BorderLayout(0, 10));
+            centerPanel.setBackground(Color.WHITE);
+            centerPanel.add(iconLabel, BorderLayout.NORTH);
+            centerPanel.add(label, BorderLayout.CENTER);
 
-        // Mostrar en hilo separado
-        new Thread(() -> {
-            SwingUtilities.invokeLater(() -> loadingDialog.setVisible(true));
-        }).start();
+            panel.add(centerPanel, BorderLayout.CENTER);
+            panel.add(progressBar, BorderLayout.SOUTH);
+
+            loadingDialog.add(panel);
+            loadingDialog.pack();
+            loadingDialog.setLocationRelativeTo(this);
+            loadingDialog.setVisible(true);
+
+            // Forzar repaint para asegurar visibilidad
+            loadingDialog.toFront();
+            loadingDialog.repaint();
+        });
     }
 
     /**
      * Oculta el dialog de loading
      */
     public void hideLoading() {
-        if (loadingDialog != null && loadingDialog.isVisible()) {
-            loadingDialog.dispose();
-            loadingDialog = null;
-        }
+        SwingUtilities.invokeLater(() -> {
+            if (loadingDialog != null) {
+                if (loadingDialog.isVisible()) {
+                    loadingDialog.setVisible(false);
+                }
+                loadingDialog.dispose();
+                loadingDialog = null;
+            }
+        });
     }
 
     /**
@@ -198,5 +227,14 @@ public class EstudianteView extends JFrame {
 
     public EstudianteController getController() {
         return controller;
+    }
+
+    /**
+     * Maneja el cierre de sesión del estudiante
+     */
+    private void handleLogout() {
+        if (controller != null) {
+            controller.handleCerrarSesion();
+        }
     }
 }

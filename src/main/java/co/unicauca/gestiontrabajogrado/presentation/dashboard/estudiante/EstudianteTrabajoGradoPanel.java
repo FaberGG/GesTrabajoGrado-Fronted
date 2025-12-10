@@ -1,9 +1,6 @@
 package co.unicauca.gestiontrabajogrado.presentation.dashboard.estudiante;
 
 import co.unicauca.gestiontrabajogrado.application.controllers.EstudianteController;
-import co.unicauca.gestiontrabajogrado.domain.dto.progress.ProyectoEstadoDTO;
-import co.unicauca.gestiontrabajogrado.domain.dto.progress.ProyectoHistorialDTO;
-import co.unicauca.gestiontrabajogrado.domain.dto.progress.EventoDTO;
 import co.unicauca.gestiontrabajogrado.presentation.common.UIConstants;
 
 import javax.swing.*;
@@ -155,7 +152,7 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
     }
 
     private JPanel createProjectInfoCard() {
-        ProyectoEstadoDTO proyecto = controller.getEstadoProyectoActual();
+        co.unicauca.gestiontrabajogrado.domain.dto.progress.EstudianteProyectoDTO proyecto = controller.getProyectoEstudiante();
 
         // Panel con sombra
         JPanel shadowPanel = new JPanel() {
@@ -198,8 +195,8 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
             }
         };
         card.setOpaque(false);
-        card.setMaximumSize(new Dimension(750, 240));
-        card.setPreferredSize(new Dimension(750, 240));
+        card.setMaximumSize(new Dimension(750, 200));
+        card.setPreferredSize(new Dimension(750, 200));
 
         JPanel contentPanel = new JPanel(new BorderLayout());
         contentPanel.setBackground(Color.WHITE);
@@ -215,7 +212,7 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         projectIcon.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 16));
         projectIcon.setBorder(new EmptyBorder(0, 0, 0, 8));
 
-        JLabel titleLabel = new JLabel(proyecto.getTitulo());
+        JLabel titleLabel = new JLabel(controller.obtenerTituloProyecto());
         titleLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 16));
         titleLabel.setForeground(Color.decode("#2C2C2C"));
 
@@ -229,37 +226,51 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         mainInfoPanel.setOpaque(false);
         mainInfoPanel.setBorder(new EmptyBorder(15, 15, 10, 15));
 
-        // Grid 2x2
-        JPanel topInfoPanel = new JPanel(new GridLayout(2, 2, 25, 10));
+        // Grid de información con fase y estudiantes
+        JPanel topInfoPanel = new JPanel(new GridLayout(1, 2, 25, 10));
         topInfoPanel.setBackground(Color.WHITE);
         topInfoPanel.setOpaque(false);
 
-        topInfoPanel.add(createCompactInfoItem("📚 Modalidad", proyecto.getModalidad()));
-        topInfoPanel.add(createCompactInfoItem("🎓 Programa", proyecto.getPrograma()));
-        topInfoPanel.add(createCompactInfoItem("👨‍🏫 Director", controller.obtenerNombreDirector()));
-        topInfoPanel.add(createCompactInfoItem("👨‍💼 Codirector", controller.obtenerNombreCodirector()));
+        topInfoPanel.add(createCompactInfoItem("🎯 Fase", controller.obtenerFaseActual()));
 
-        mainInfoPanel.add(topInfoPanel, BorderLayout.NORTH);
+        // Obtener nombres de estudiantes
+        String nombresEstudiantes = obtenerNombresEstudiantes();
+        topInfoPanel.add(createCompactInfoItem("👥 Estudiantes", nombresEstudiantes));
 
-        // Panel de estudiantes
-        String estudiantes = controller.getCurrentUser().getNombres() + " " +
-                controller.getCurrentUser().getApellidos();
-
-        JPanel estudiantesPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        estudiantesPanel.setBackground(Color.WHITE);
-        estudiantesPanel.setOpaque(false);
-        estudiantesPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
-
-        JPanel estudianteInfo = createCompactInfoItem("👥 Estudiantes", estudiantes);
-        estudiantesPanel.add(estudianteInfo);
-
-        mainInfoPanel.add(estudiantesPanel, BorderLayout.CENTER);
+        mainInfoPanel.add(topInfoPanel, BorderLayout.CENTER);
 
         contentPanel.add(mainInfoPanel, BorderLayout.CENTER);
         card.add(contentPanel, BorderLayout.CENTER);
         shadowPanel.add(card, BorderLayout.CENTER);
 
         return shadowPanel;
+    }
+
+    /**
+     * Obtiene los nombres de los estudiantes del proyecto
+     */
+    private String obtenerNombresEstudiantes() {
+        co.unicauca.gestiontrabajogrado.domain.dto.progress.EstudianteProyectoDTO.EstudiantesDTO estudiantes =
+                controller.obtenerEstudiantes();
+
+        if (estudiantes == null) {
+            return "No asignados";
+        }
+
+        StringBuilder nombres = new StringBuilder();
+
+        if (estudiantes.getEstudiante1() != null) {
+            nombres.append(estudiantes.getEstudiante1().getNombre());
+        }
+
+        if (estudiantes.getEstudiante2() != null) {
+            if (nombres.length() > 0) {
+                nombres.append(", ");
+            }
+            nombres.append(estudiantes.getEstudiante2().getNombre());
+        }
+
+        return nombres.length() > 0 ? nombres.toString() : "No asignados";
     }
 
     private JPanel createCompactInfoItem(String label, String value) {
@@ -355,13 +366,12 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(UIConstants.BG_APP);
 
-        ProyectoHistorialDTO historial = controller.getHistorialProyecto();
+        List<co.unicauca.gestiontrabajogrado.domain.dto.progress.EstudianteProyectoDTO.EventoHistorialDTO> eventos =
+                controller.obtenerHistorial();
 
-        if (historial != null && historial.getHistorial() != null) {
-            List<ProyectoHistorialDTO.EventoDTO> eventos = historial.getHistorial();
-
+        if (eventos != null && !eventos.isEmpty()) {
             for (int i = 0; i < eventos.size(); i++) {
-                ProyectoHistorialDTO.EventoDTO evento = eventos.get(i);
+                co.unicauca.gestiontrabajogrado.domain.dto.progress.EstudianteProyectoDTO.EventoHistorialDTO evento = eventos.get(i);
                 JPanel trackingCard = createTrackingCardFromEvento(evento);
                 panel.add(trackingCard);
 
@@ -383,7 +393,7 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         return panel;
     }
 
-    private JPanel createTrackingCardFromEvento(ProyectoHistorialDTO.EventoDTO evento) {
+    private JPanel createTrackingCardFromEvento(co.unicauca.gestiontrabajogrado.domain.dto.progress.EstudianteProyectoDTO.EventoHistorialDTO evento) {
         // Determinar estado del icono basado en el tipo de evento
         TrackingItem.EstadoIcono estadoIcono = determinarEstadoIcono(evento);
         String icono = getIconoParaEstado(estadoIcono);
@@ -397,7 +407,7 @@ public class EstudianteTrabajoGradoPanel extends JPanel {
         ));
     }
 
-    private TrackingItem.EstadoIcono determinarEstadoIcono(ProyectoHistorialDTO.EventoDTO evento) {
+    private TrackingItem.EstadoIcono determinarEstadoIcono(co.unicauca.gestiontrabajogrado.domain.dto.progress.EstudianteProyectoDTO.EventoHistorialDTO evento) {
         String tipoEvento = evento.getTipoEvento();
         String resultado = evento.getResultado();
 

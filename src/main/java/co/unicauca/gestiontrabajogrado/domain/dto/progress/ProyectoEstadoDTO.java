@@ -19,6 +19,8 @@ public class ProyectoEstadoDTO {
     private FormatoAEstadoDTO formatoA;
     private AnteproyectoEstadoDTO anteproyecto;
     private ParticipantesDTO participantes;
+    private EstudiantesDTO estudiantes;
+    private Boolean tieneProyecto;
 
     // Getters y Setters
     public Long getProyectoId() {
@@ -115,6 +117,22 @@ public class ProyectoEstadoDTO {
 
     public void setParticipantes(ParticipantesDTO participantes) {
         this.participantes = participantes;
+    }
+
+    public EstudiantesDTO getEstudiantes() {
+        return estudiantes;
+    }
+
+    public void setEstudiantes(EstudiantesDTO estudiantes) {
+        this.estudiantes = estudiantes;
+    }
+
+    public Boolean getTieneProyecto() {
+        return tieneProyecto;
+    }
+
+    public void setTieneProyecto(Boolean tieneProyecto) {
+        this.tieneProyecto = tieneProyecto;
     }
 
     // Nested DTOs
@@ -232,6 +250,7 @@ public class ProyectoEstadoDTO {
     public static class UsuarioBasicoDTO {
         private Long id;
         private String nombre;
+        private String email; // Agregado para estudiantes
 
         // Getters y Setters
         public Long getId() {
@@ -248,6 +267,36 @@ public class ProyectoEstadoDTO {
 
         public void setNombre(String nombre) {
             this.nombre = nombre;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
+        }
+    }
+
+    public static class EstudiantesDTO {
+        private UsuarioBasicoDTO estudiante1;
+        private UsuarioBasicoDTO estudiante2;
+
+        // Getters y Setters
+        public UsuarioBasicoDTO getEstudiante1() {
+            return estudiante1;
+        }
+
+        public void setEstudiante1(UsuarioBasicoDTO estudiante1) {
+            this.estudiante1 = estudiante1;
+        }
+
+        public UsuarioBasicoDTO getEstudiante2() {
+            return estudiante2;
+        }
+
+        public void setEstudiante2(UsuarioBasicoDTO estudiante2) {
+            this.estudiante2 = estudiante2;
         }
     }
 }

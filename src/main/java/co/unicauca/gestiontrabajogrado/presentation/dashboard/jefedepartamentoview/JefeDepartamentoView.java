@@ -50,7 +50,11 @@ public class JefeDepartamentoView extends JFrame {
 
         configurarVentana();
         construirUI();
-        cargarDatos();
+
+        // Solo cargar datos si el controller está inicializado
+        if (this.controller != null) {
+            cargarDatos();
+        }
     }
 
     private void configurarVentana() {
@@ -63,10 +67,11 @@ public class JefeDepartamentoView extends JFrame {
     private void construirUI() {
         setLayout(new BorderLayout());
 
-        // Header común
-        add(new HeaderPanel(), BorderLayout.NORTH);
+        // Header común con logout (sin scroll)
+        HeaderPanel header = new HeaderPanel(() -> handleLogout());
+        add(header, BorderLayout.NORTH);
 
-        // Panel principal
+        // Panel principal CON SCROLL
         JPanel mainPanel = new JPanel(new BorderLayout(0, 16));
         mainPanel.setBackground(C_GRIS_FONDO);
         mainPanel.setBorder(new EmptyBorder(20, 40, 20, 40));
@@ -75,9 +80,17 @@ public class JefeDepartamentoView extends JFrame {
         mainPanel.add(crearPanelTabla(), BorderLayout.CENTER);
         mainPanel.add(crearPanelPendientes(), BorderLayout.SOUTH);
 
-        add(mainPanel, BorderLayout.CENTER);
+        // IMPORTANTE: Envolver mainPanel en JScrollPane
+        JScrollPane mainScrollPane = new JScrollPane(mainPanel);
+        mainScrollPane.setBorder(BorderFactory.createEmptyBorder());
+        mainScrollPane.getVerticalScrollBar().setUnitIncrement(16); // Velocidad de scroll suave
+        mainScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        mainScrollPane.getViewport().setBackground(C_GRIS_FONDO);
+
+        add(mainScrollPane, BorderLayout.CENTER);
     }
-// ====== Construcción de componentes ======
+
+    // ====== Construcción de componentes ======
 
     private JPanel crearBanner() {
         RoundedPanel banner = new RoundedPanel(16, C_ROJO_1);
@@ -177,6 +190,9 @@ public class JefeDepartamentoView extends JFrame {
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(224, 224, 224), 1));
         scrollPane.getViewport().setBackground(Color.WHITE);
 
+        // Configurar altura mínima preferida para la tabla
+        scrollPane.setPreferredSize(new Dimension(0, 400));
+
         return scrollPane;
     }
 
@@ -235,7 +251,8 @@ public class JefeDepartamentoView extends JFrame {
 
         return panel;
     }
-// ====== Lógica de datos ======
+
+    // ====== Lógica de datos ======
 
     public void cargarDatos() {
         if (controller == null) {
@@ -316,7 +333,7 @@ public class JefeDepartamentoView extends JFrame {
         cargarDatos();
     }
 
-    // ====== Métodos públicos para el controllers ======
+    // ====== Métodos públicos para el controller ======
 
     public void showError(String message) {
         JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
@@ -330,6 +347,17 @@ public class JefeDepartamentoView extends JFrame {
         this.controller = controller;
         if (this.controller != null) {
             this.controller.setView(this);
+            // Cargar datos automáticamente cuando se establece el controller
+            cargarDatos();
+        }
+    }
+
+    /**
+     * Maneja el cierre de sesión del jefe de departamento
+     */
+    private void handleLogout() {
+        if (controller != null) {
+            controller.handleCerrarSesion();
         }
     }
 

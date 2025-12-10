@@ -9,6 +9,7 @@ import java.util.List;
  */
 public class FormatoAReviewDTO {
     private Long formatoAId;
+    private Long proyectoId; // Agregado para tracking service
     private String titulo;
     private String docenteDirectorNombre;
     private String docenteDirectorEmail;
@@ -19,10 +20,11 @@ public class FormatoAReviewDTO {
     public FormatoAReviewDTO() {
     }
 
-    public FormatoAReviewDTO(Long formatoAId, String titulo, String docenteDirectorNombre,
+    public FormatoAReviewDTO(Long formatoAId, Long proyectoId, String titulo, String docenteDirectorNombre,
                              String docenteDirectorEmail, List<String> estudiantesEmails,
                              LocalDateTime fechaCarga, String estado) {
         this.formatoAId = formatoAId;
+        this.proyectoId = proyectoId;
         this.titulo = titulo;
         this.docenteDirectorNombre = docenteDirectorNombre;
         this.docenteDirectorEmail = docenteDirectorEmail;
@@ -37,6 +39,14 @@ public class FormatoAReviewDTO {
 
     public void setFormatoAId(Long formatoAId) {
         this.formatoAId = formatoAId;
+    }
+
+    public Long getProyectoId() {
+        return proyectoId;
+    }
+
+    public void setProyectoId(Long proyectoId) {
+        this.proyectoId = proyectoId;
     }
 
     public String getTitulo() {

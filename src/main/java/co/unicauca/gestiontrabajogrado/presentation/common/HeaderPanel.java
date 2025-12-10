@@ -4,22 +4,36 @@
  */
 package co.unicauca.gestiontrabajogrado.presentation.common;
 
-/**
- *
- * @author Lyz
- */
+import co.unicauca.gestiontrabajogrado.application.session.SessionManager;
+import co.unicauca.gestiontrabajogrado.domain.dto.identity.UserProfile;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 
+/**
+ * Header común para todas las vistas con logo, título y botón de cerrar sesión
+ * Proporciona una experiencia consistente en toda la aplicación
+ */
 public class HeaderPanel extends JPanel {
     private BufferedImage logoImage;
+    private JLabel avatarLabel;
+    private Runnable onLogoutAction;
+    private SessionManager sessionManager;
 
     public HeaderPanel() {
-        setPreferredSize(new Dimension(10, 100)); // Aumenté la altura para mejor proporción
+        this(null);
+    }
+
+    public HeaderPanel(Runnable onLogoutAction) {
+        this.onLogoutAction = onLogoutAction;
+        this.sessionManager = SessionManager.getInstance();
+
+        setPreferredSize(new Dimension(10, 100));
         setBackground(UIConstants.BLUE_MAIN);
         setLayout(new BorderLayout());
 
@@ -74,7 +88,10 @@ public class HeaderPanel extends JPanel {
         mainContent.add(textPanel, BorderLayout.CENTER);
 
         add(mainContent, BorderLayout.CENTER);
-        add(new RibbonRight(), BorderLayout.EAST);
+
+        // Panel derecho con controles de usuario
+        JPanel rightPanel = createRightPanel();
+        add(rightPanel, BorderLayout.EAST);
 
         // Borde con efecto de sombra mejorado
         setBorder(BorderFactory.createCompoundBorder(
@@ -83,12 +100,224 @@ public class HeaderPanel extends JPanel {
         ));
     }
 
+    /**
+     * Crea el panel derecho con botones de notificación y avatar con menú de usuario
+     */
+    private JPanel createRightPanel() {
+        JPanel rightPanel = new JPanel();
+        rightPanel.setOpaque(false);
+        rightPanel.setLayout(new FlowLayout(FlowLayout.RIGHT, 15, 0));
+        rightPanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 20));
+
+        // Botón de notificaciones
+        JButton btnNotifications = createIconButton("🔔");
+        btnNotifications.setToolTipText("Notificaciones");
+        btnNotifications.addActionListener(e ->
+            JOptionPane.showMessageDialog(this,
+                "No hay notificaciones nuevas",
+                "Notificaciones",
+                JOptionPane.INFORMATION_MESSAGE));
+
+        // Avatar con menú desplegable
+        avatarLabel = createAvatarLabel();
+
+        rightPanel.add(btnNotifications);
+        rightPanel.add(avatarLabel);
+
+        return rightPanel;
+    }
+
+    /**
+     * Crea un botón de icono estilizado
+     */
+    private JButton createIconButton(String icon) {
+        JButton btn = new JButton(icon);
+        btn.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(new Color(255, 255, 255, 40));
+        btn.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        btn.setFocusPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setOpaque(true);
+
+        // Efecto hover
+        btn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                btn.setBackground(new Color(255, 255, 255, 60));
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                btn.setBackground(new Color(255, 255, 255, 40));
+            }
+        });
+
+        return btn;
+    }
+
+    /**
+     * Crea el label del avatar con las iniciales del usuario
+     */
+    private JLabel createAvatarLabel() {
+        String initials = getInitials();
+        JLabel avatar = new JLabel(initials, SwingConstants.CENTER);
+        avatar.setPreferredSize(new Dimension(42, 42));
+        avatar.setFont(new Font("Arial", Font.BOLD, 16));
+        avatar.setForeground(Color.WHITE);
+        avatar.setOpaque(true);
+        avatar.setBackground(new Color(UIConstants.ACCENT_RED.getRed(),
+                                       UIConstants.ACCENT_RED.getGreen(),
+                                       UIConstants.ACCENT_RED.getBlue(), 200));
+        avatar.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(255, 255, 255, 150), 2, true),
+            BorderFactory.createEmptyBorder(2, 2, 2, 2)
+        ));
+        avatar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        avatar.setToolTipText("Menú de usuario");
+
+        // Agregar menú desplegable
+        avatar.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                showUserMenu(avatar);
+            }
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                avatar.setBackground(new Color(UIConstants.ACCENT_RED.getRed(),
+                                               UIConstants.ACCENT_RED.getGreen(),
+                                               UIConstants.ACCENT_RED.getBlue(), 230));
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                avatar.setBackground(new Color(UIConstants.ACCENT_RED.getRed(),
+                                               UIConstants.ACCENT_RED.getGreen(),
+                                               UIConstants.ACCENT_RED.getBlue(), 200));
+            }
+        });
+
+        return avatar;
+    }
+
+    /**
+     * Obtiene las iniciales del usuario actual
+     */
+    private String getInitials() {
+        if (sessionManager != null && sessionManager.isAuthenticated()) {
+            UserProfile user = sessionManager.getCurrentUser();
+            if (user != null) {
+                String nombres = user.getNombres() != null ? user.getNombres().trim() : "";
+                String apellidos = user.getApellidos() != null ? user.getApellidos().trim() : "";
+
+                String initial1 = nombres.isEmpty() ? "" : nombres.substring(0, 1);
+                String initial2 = apellidos.isEmpty() ? "" : apellidos.substring(0, 1);
+
+                String result = (initial1 + initial2).toUpperCase();
+                return result.isEmpty() ? "U" : result;
+            }
+        }
+        return "U";
+    }
+
+    /**
+     * Muestra el menú de usuario con opciones
+     */
+    private void showUserMenu(Component source) {
+        JPopupMenu menu = new JPopupMenu();
+        menu.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+
+        // Información del usuario
+        if (sessionManager != null && sessionManager.isAuthenticated()) {
+            UserProfile user = sessionManager.getCurrentUser();
+            if (user != null) {
+                JMenuItem userInfo = new JMenuItem(user.getNombres() + " " + user.getApellidos());
+                userInfo.setFont(new Font("Arial", Font.BOLD, 12));
+                userInfo.setEnabled(false);
+                menu.add(userInfo);
+
+                JMenuItem roleInfo = new JMenuItem("Rol: " + user.getRol());
+                roleInfo.setFont(new Font("Arial", Font.PLAIN, 11));
+                roleInfo.setForeground(Color.GRAY);
+                roleInfo.setEnabled(false);
+                menu.add(roleInfo);
+
+                menu.addSeparator();
+            }
+        }
+
+        // Opción de cerrar sesión
+        JMenuItem logoutItem = new JMenuItem("Cerrar sesión");
+        logoutItem.setFont(new Font("Arial", Font.PLAIN, 12));
+        logoutItem.setIcon(UIManager.getIcon("FileView.hardDriveIcon")); // Icono simple
+        logoutItem.addActionListener(e -> handleLogout());
+        menu.add(logoutItem);
+
+        // Mostrar menú
+        menu.show(source, 0, source.getHeight() + 5);
+    }
+
+    /**
+     * Maneja el cierre de sesión
+     */
+    private void handleLogout() {
+        int confirm = JOptionPane.showConfirmDialog(
+            this,
+            "¿Está seguro que desea cerrar sesión?",
+            "Confirmar cierre de sesión",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            if (onLogoutAction != null) {
+                onLogoutAction.run();
+            } else {
+                // Acción predeterminada: cerrar sesión y volver al login
+                if (sessionManager != null) {
+                    sessionManager.logout();
+                }
+
+                // Cerrar ventana actual y abrir login
+                Window window = SwingUtilities.getWindowAncestor(this);
+                if (window != null) {
+                    window.dispose();
+                }
+
+                // Mostrar login (esto debería manejarse desde el controlador)
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(null,
+                        "Sesión cerrada correctamente",
+                        "Información",
+                        JOptionPane.INFORMATION_MESSAGE);
+                });
+            }
+        }
+    }
+
+    /**
+     * Configura la acción personalizada de logout
+     */
+    public void setOnLogoutAction(Runnable action) {
+        this.onLogoutAction = action;
+    }
+
+    /**
+     * Actualiza el texto del avatar
+     */
+    public void updateAvatar() {
+        if (avatarLabel != null) {
+            avatarLabel.setText(getInitials());
+        }
+    }
+
     private void loadLogo() {
         // Rutas simplificadas para la nueva ubicación
         String[] possiblePaths = {
-                "/images/logo.png",           // Ruta simple en resources/images/
-                "/logo.png",                  // Ruta en raíz de resources
-                "/co/unicauca/gestiontrabajogrado/presentation/resources/images/logo.png" // Ruta completa
+                "/images/logo.png",
+                "/logo.png",
+                "/co/unicauca/gestiontrabajogrado/presentation/resources/images/logo.png"
         };
 
         for (String path : possiblePaths) {
@@ -98,15 +327,12 @@ public class HeaderPanel extends JPanel {
                     logoImage = ImageIO.read(logoStream);
                     logoStream.close();
                     return;
-                } else {
-                    System.out.println("✗ No encontrado en: " + path);
                 }
             } catch (IOException e) {
-                System.err.println("✗ Error al cargar " + path + ": " + e.getMessage());
+                // Continuar con el siguiente path
             }
         }
 
-        System.err.println("No se encontró el logo PNG, usando placeholder");
         createPlaceholderLogo();
     }
 
@@ -161,50 +387,7 @@ public class HeaderPanel extends JPanel {
         return label;
     }
 
-    // Ribbon mejorado con degradado
-    static class RibbonRight extends JComponent {
-        RibbonRight() {
-            setPreferredSize(new Dimension(120, 100));
-        }
 
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            // Fondo con degradado
-            GradientPaint gradient = new GradientPaint(
-                    0, 0, UIConstants.BLUE_MAIN,
-                    0, getHeight(), UIConstants.BLUE_DARK
-            );
-            g2.setPaint(gradient);
-            g2.fillRect(0, 0, getWidth(), getHeight());
-
-            // Crear efecto de "mordidas" con sombra
-            g2.setColor(UIConstants.ACCENT_RED);
-            int w = getWidth();
-            int h = getHeight();
-            int tooth = 22;
-            int x = w - tooth;
-
-            for (int y = 0; y < h; y += tooth) {
-                // Sombra de la mordida
-                g2.setColor(new Color(UIConstants.ACCENT_RED.getRed(),
-                        UIConstants.ACCENT_RED.getGreen(),
-                        UIConstants.ACCENT_RED.getBlue(), 100));
-                int[] shadowXs = {w + 2, x + 2, w + 2};
-                int[] shadowYs = {y + 2, y + tooth/2 + 2, y + tooth + 2};
-                g2.fillPolygon(shadowXs, shadowYs, 3);
-
-                // Mordida principal
-                g2.setColor(UIConstants.ACCENT_RED);
-                int[] xs = {w, x, w};
-                int[] ys = {y, y + tooth/2, y + tooth};
-                g2.fillPolygon(xs, ys, 3);
-            }
-            g2.dispose();
-        }
-    }
 
     @Override
     protected void paintComponent(Graphics g) {

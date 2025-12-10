@@ -47,10 +47,31 @@ public class FormatoAController {
             return;
         }
 
+        // Validar datos antes de enviar
+        String errorValidacion = validarDatos(data);
+        if (errorValidacion != null) {
+            callback.onError(errorValidacion);
+            return;
+        }
+
+        // Validar archivos
+        if (pdfFile == null || !pdfFile.exists()) {
+            callback.onError("Debe seleccionar un archivo PDF para el Formato A");
+            return;
+        }
+
+        if (data.getModalidad() == FormatoAData.Modalidad.PRACTICA_PROFESIONAL) {
+            if (cartaFile == null || !cartaFile.exists()) {
+                callback.onError("Debe adjuntar la carta de aceptación de la empresa para Práctica Profesional");
+                return;
+            }
+        }
+
         // Ejecutar en background
         SwingWorker<Long, Void> worker = new SwingWorker<Long, Void>() {
             @Override
             protected Long doInBackground() throws Exception {
+                System.out.println("📤 Iniciando creación de Formato A...");
                 return submissionService.crearFormatoA(data, pdfFile, cartaFile);
             }
 
@@ -58,9 +79,12 @@ public class FormatoAController {
             protected void done() {
                 try {
                     Long id = get();
-                    callback.onSuccess("Formato A creado exitosamente con ID: " + id, id);
+                    System.out.println("✅ Formato A creado exitosamente en el controller con ID: " + id);
+                    callback.onSuccess("Formato A creado exitosamente", id);
                 } catch (Exception e) {
                     String errorMsg = extractErrorMessage(e);
+                    System.err.println("❌ Error en controller al crear Formato A: " + errorMsg);
+                    e.printStackTrace();
                     callback.onError("Error al crear Formato A: " + errorMsg);
                 }
             }
@@ -86,10 +110,23 @@ public class FormatoAController {
             return;
         }
 
+        // Validar proyecto ID
+        if (proyectoId == null || proyectoId <= 0) {
+            callback.onError("ID de proyecto inválido");
+            return;
+        }
+
+        // Validar archivo PDF
+        if (pdfFile == null || !pdfFile.exists()) {
+            callback.onError("Debe seleccionar un archivo PDF para el Formato A");
+            return;
+        }
+
         // Ejecutar en background
         SwingWorker<Long, Void> worker = new SwingWorker<Long, Void>() {
             @Override
             protected Long doInBackground() throws Exception {
+                System.out.println("📤 Iniciando reenvío de Formato A para proyecto " + proyectoId + "...");
                 return submissionService.reenviarFormatoA(proyectoId, pdfFile, cartaFile);
             }
 
@@ -97,9 +134,12 @@ public class FormatoAController {
             protected void done() {
                 try {
                     Long id = get();
-                    callback.onSuccess("Nueva versión enviada exitosamente con ID: " + id, id);
+                    System.out.println("✅ Formato A reenviado exitosamente con ID: " + id);
+                    callback.onSuccess("Nueva versión enviada exitosamente", id);
                 } catch (Exception e) {
                     String errorMsg = extractErrorMessage(e);
+                    System.err.println("❌ Error al reenviar Formato A: " + errorMsg);
+                    e.printStackTrace();
                     callback.onError("Error al reenviar Formato A: " + errorMsg);
                 }
             }

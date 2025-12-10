@@ -24,6 +24,7 @@ public class DetalleProyectoModal extends JPanel {
     private Long proyectoId;
 
     // Componentes de información (solo lectura)
+    private final JLabel lblIdProyecto = new JLabel();
     private final JLabel lblTitulo = new JLabel();
     private final JLabel lblModalidad = new JLabel();
     private final JLabel lblEstado = new JLabel();
@@ -130,6 +131,7 @@ public class DetalleProyectoModal extends JPanel {
         c.fill = GridBagConstraints.HORIZONTAL;
 
         int row = 0;
+        addInfoRow(grid, c, row++, "ID Proyecto:", lblIdProyecto, 1);
         addInfoRow(grid, c, row++, "Título:", lblTitulo, 3);
         addInfoRow(grid, c, row++, "Modalidad:", lblModalidad, 1);
         addInfoRow(grid, c, row++, "Estado:", lblEstado, 1);
@@ -299,13 +301,97 @@ public class DetalleProyectoModal extends JPanel {
 
     // Nuevo campo de clase
     private FormatoAView formatoAActual;
+    private co.unicauca.gestiontrabajogrado.domain.dto.progress.ProyectoEstadoDTO estadoProyecto;
 
+    /**
+     * Carga el estado completo del proyecto usando ProyectoEstadoDTO
+     * Este método reemplaza cargarFormatoA y usa información del tracking service
+     */
+    public void cargarEstadoProyecto(co.unicauca.gestiontrabajogrado.domain.dto.progress.ProyectoEstadoDTO estado) {
+        this.estadoProyecto = estado;
+        this.proyectoId = estado.getProyectoId();
+
+        // Información General
+        lblIdProyecto.setText(estado.getProyectoId() != null ? estado.getProyectoId().toString() : "N/A");
+        lblIdProyecto.setFont(F_BODY.deriveFont(Font.BOLD));
+        lblTitulo.setText(estado.getTitulo() != null ? estado.getTitulo() : "Sin título");
+        lblModalidad.setText(estado.getModalidad() != null ? estado.getModalidad() : "No especificada");
+
+        // Estado actual con color
+        if (estado.getEstadoLegible() != null) {
+            lblEstado.setText(estado.getEstadoLegible());
+            lblEstado.setForeground(obtenerColorEstado(estado.getEstadoActual()));
+            lblEstado.setFont(F_BODY.deriveFont(Font.BOLD));
+        }
+
+        // Información del Formato A
+        if (estado.getFormatoA() != null) {
+            co.unicauca.gestiontrabajogrado.domain.dto.progress.ProyectoEstadoDTO.FormatoAEstadoDTO formatoA = estado.getFormatoA();
+            int intento = formatoA.getIntentoActual() != null ? formatoA.getIntentoActual() : 0;
+            int max = formatoA.getMaxIntentos() != null ? formatoA.getMaxIntentos() : 3;
+            lblIntentos.setText("Intento " + intento + " de " + max);
+
+            if (intento >= max) {
+                lblIntentos.setForeground(C_ROJO_1);
+                lblIntentos.setFont(F_BODY.deriveFont(Font.BOLD));
+            }
+        } else {
+            lblIntentos.setText("Sin información de intentos");
+        }
+
+        // Participantes
+        if (estado.getParticipantes() != null) {
+            var participantes = estado.getParticipantes();
+            lblDirector.setText(participantes.getDirector() != null ? participantes.getDirector().getNombre() : "No asignado");
+            lblCodirector.setText(participantes.getCodirector() != null ? participantes.getCodirector().getNombre() : "No asignado");
+        } else {
+            lblDirector.setText("No asignado");
+            lblCodirector.setText("No asignado");
+        }
+
+        // Estudiantes
+        if (estado.getEstudiantes() != null) {
+            var estudiantes = estado.getEstudiantes();
+            lblEstudiante1.setText(estudiantes.getEstudiante1() != null ? estudiantes.getEstudiante1().getNombre() : "No asignado");
+            lblEstudiante2.setText(estudiantes.getEstudiante2() != null ? estudiantes.getEstudiante2().getNombre() : "No asignado");
+        } else {
+            lblEstudiante1.setText("No asignado");
+            lblEstudiante2.setText("No asignado");
+        }
+
+        // Objetivos (si están disponibles en el estado)
+        taObjGeneral.setText("Información disponible en el Formato A completo");
+        taObjEspecificos.setText("Información disponible en el Formato A completo");
+        taObjGeneral.setEditable(false);
+        taObjEspecificos.setEditable(false);
+        taObjGeneral.setBackground(new Color(250, 250, 250));
+        taObjEspecificos.setBackground(new Color(250, 250, 250));
+
+        // Observaciones (habría que obtenerlas del FormatoA si están disponibles)
+        taObservaciones.setText("Consulte el siguiente paso sugerido:\n" +
+                                (estado.getSiguientePaso() != null ? estado.getSiguientePaso() : "Sin información"));
+        taObservaciones.setForeground(new Color(80, 80, 80));
+
+        // Controlar visibilidad de sección "Subir nueva versión"
+        boolean puedeReenviar = puedeReenviarFormatoA(estado);
+        panelNuevaVersion.setVisible(puedeReenviar);
+        btnSubirVersion.setVisible(puedeReenviar);
+
+        // Habilitar carta si la modalidad lo requiere
+        if (estado.getModalidad() != null && estado.getModalidad().contains("PRACTICA")) {
+            dfNuevaCarta.setEnabled(true);
+        }
+    }
+
+    /**
+     * Método legacy para compatibilidad con código existente
+     */
     public void cargarFormatoA(FormatoAView formatoA) {
         this.formatoAActual = formatoA;
         this.proyectoId = formatoA.getProyectoId();
 
         // Información básica
-        lblTitulo.setText("Proyecto #" + formatoA.getProyectoId()); // Temporal, falta título real
+        lblTitulo.setText("Proyecto #" + formatoA.getProyectoId());
         lblModalidad.setText("Versión " + formatoA.getVersion());
 
         // Estado con color
@@ -330,9 +416,6 @@ public class DetalleProyectoModal extends JPanel {
             taObservaciones.setForeground(new Color(120, 120, 120));
         }
 
-        // NOTA: Para mostrar objetivos y participantes, necesitarías
-        // hacer otra petición al Progress Tracking Service o al backend
-        // Por ahora dejamos esos campos vacíos
         taObjGeneral.setText("Información no disponible");
         taObjEspecificos.setText("Información no disponible");
         lblDirector.setText("Información no disponible");
@@ -348,19 +431,47 @@ public class DetalleProyectoModal extends JPanel {
         panelNuevaVersion.setVisible(puedeSubir);
         btnSubirVersion.setVisible(puedeSubir);
 
-        if (!puedeSubir && formatoA.getVersion() != null && formatoA.getVersion() >= 3) {
-            JOptionPane.showMessageDialog(this,
-                    "Has alcanzado el máximo de 3 intentos.\n" +
-                            "No puedes subir más versiones de este proyecto.",
-                    "Máximo de intentos alcanzado",
-                    JOptionPane.WARNING_MESSAGE);
-        }
-
-        // Deshabilitar edición de objetivos (no tenemos esos datos)
         taObjGeneral.setEditable(false);
         taObjEspecificos.setEditable(false);
         taObjGeneral.setBackground(new Color(250, 250, 250));
         taObjEspecificos.setBackground(new Color(250, 250, 250));
+    }
+
+    /**
+     * Determina si se puede reenviar el Formato A según el estado del proyecto
+     */
+    private boolean puedeReenviarFormatoA(co.unicauca.gestiontrabajogrado.domain.dto.progress.ProyectoEstadoDTO estado) {
+        if (estado.getFormatoA() == null) return false;
+
+        var formatoA = estado.getFormatoA();
+        int intento = formatoA.getIntentoActual() != null ? formatoA.getIntentoActual() : 0;
+        int max = formatoA.getMaxIntentos() != null ? formatoA.getMaxIntentos() : 3;
+
+        // Puede reenviar si está rechazado y no ha alcanzado el máximo de intentos
+        String estadoActual = estado.getEstadoActual();
+        return estadoActual != null &&
+               (estadoActual.equals("FORMATO_A_RECHAZADO_1") ||
+                estadoActual.equals("FORMATO_A_RECHAZADO_2")) &&
+               intento < max;
+    }
+
+    /**
+     * Obtiene el color según el estado actual del proyecto
+     */
+    private Color obtenerColorEstado(String estadoActual) {
+        if (estadoActual == null) return Color.BLACK;
+
+        if (estadoActual.contains("APROBADO")) {
+            return C_VERDE;
+        } else if (estadoActual.contains("RECHAZADO_DEFINITIVO")) {
+            return new Color(120, 0, 0);
+        } else if (estadoActual.contains("RECHAZADO")) {
+            return C_ROJO_1;
+        } else if (estadoActual.contains("EVALUACION")) {
+            return C_AMARILLO;
+        } else {
+            return new Color(0, 100, 180); // Azul para otros estados
+        }
     }
 
     // Nuevos métodos para estados de Formato A
@@ -420,6 +531,28 @@ public class DetalleProyectoModal extends JPanel {
     }
 
     public void setOnCancel(Runnable r) {
+        this.onCancel = r != null ? r : () -> {};
+    }
+
+    /**
+     * Configura el callback para reenviar Formato A
+     */
+    public void setOnReenviarFormatoA(Runnable r) {
+        this.onSubmit = r != null ? r : () -> {};
+    }
+
+    /**
+     * Configura el callback para subir anteproyecto
+     */
+    public void setOnSubirAnteproyecto(Runnable r) {
+        // Este callback podría agregarse si se necesita un botón separado
+        // Por ahora usamos onSubmit
+    }
+
+    /**
+     * Configura el callback para cerrar el modal
+     */
+    public void setOnCerrar(Runnable r) {
         this.onCancel = r != null ? r : () -> {};
     }
 

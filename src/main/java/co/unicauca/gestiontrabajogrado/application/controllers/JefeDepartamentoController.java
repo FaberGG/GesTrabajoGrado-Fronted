@@ -137,12 +137,19 @@ public class JefeDepartamentoController {
             }
         }
 
-        // Abrir ventana de login
+        // Abrir ventana de login con controlador inicializado
         SwingUtilities.invokeLater(() -> {
             try {
                 co.unicauca.gestiontrabajogrado.presentation.auth.LoginView loginView =
                         new co.unicauca.gestiontrabajogrado.presentation.auth.LoginView();
+
+                co.unicauca.gestiontrabajogrado.application.controllers.LoginController loginController =
+                        new co.unicauca.gestiontrabajogrado.application.controllers.LoginController(loginView);
+
+                loginView.setController(loginController);
                 loginView.setVisible(true);
+
+                System.out.println("✅ Login view abierta correctamente después de cerrar sesión");
             } catch (Exception e) {
                 e.printStackTrace();
                 JOptionPane.showMessageDialog(null,

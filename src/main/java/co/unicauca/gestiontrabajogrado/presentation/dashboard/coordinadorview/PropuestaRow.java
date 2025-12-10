@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
  */
 public record PropuestaRow(
         Integer formatoId,
+        Long proyectoId,
         String titulo,
         String nombreDocente,
         LocalDateTime fechaCarga,
@@ -19,6 +20,7 @@ public record PropuestaRow(
     public PropuestaRow withEstado(String nuevoEstado) {
         return new PropuestaRow(
                 this.formatoId,
+                this.proyectoId,
                 this.titulo,
                 this.nombreDocente,
                 this.fechaCarga,

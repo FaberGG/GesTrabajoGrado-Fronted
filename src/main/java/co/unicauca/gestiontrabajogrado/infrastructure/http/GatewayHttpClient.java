@@ -295,6 +295,33 @@ public class GatewayHttpClient {
         int status = response.statusCode();
         String body = response.body();
 
+        System.err.println("❌ ERROR HTTP " + status + ":");
+        System.err.println("   Response body: " + body);
+
+        // Intentar extraer mensaje de error del JSON del backend
+        String errorMessage = body;
+        if (body != null && !body.isEmpty()) {
+            try {
+                // Intentar parsear como JSON para extraer el mensaje
+                if (body.contains("\"message\"")) {
+                    int msgStart = body.indexOf("\"message\"") + 11;
+                    int msgEnd = body.indexOf("\"", msgStart);
+                    if (msgEnd > msgStart) {
+                        errorMessage = body.substring(msgStart, msgEnd);
+                    }
+                } else if (body.contains("\"error\"")) {
+                    int errStart = body.indexOf("\"error\"") + 9;
+                    int errEnd = body.indexOf("\"", errStart);
+                    if (errEnd > errStart) {
+                        errorMessage = body.substring(errStart, errEnd);
+                    }
+                }
+            } catch (Exception e) {
+                // Si falla el parseo, usar el body completo
+                errorMessage = body;
+            }
+        }
+
         if (status == 401) {
             throw new IOException("Sesión expirada. Por favor inicie sesión nuevamente.");
         } else if (status == 403) {
@@ -304,11 +331,11 @@ public class GatewayHttpClient {
         } else if (status == 413) {
             throw new IOException("El archivo es demasiado grande.");
         } else if (status >= 400 && status < 500) {
-            throw new IOException("Error en la petición: " + (body != null ? body : "Sin detalles"));
+            throw new IOException("Error en la petición (código " + status + "): " + errorMessage);
         } else if (status >= 500) {
-            throw new IOException("Error en el servidor: " + (body != null ? body : "Sin detalles"));
+            throw new IOException("Error en el servidor (código " + status + "): " + errorMessage);
         } else {
-            throw new IOException("Error inesperado (código " + status + "): " + body);
+            throw new IOException("Error inesperado (código " + status + "): " + errorMessage);
         }
     }
 }

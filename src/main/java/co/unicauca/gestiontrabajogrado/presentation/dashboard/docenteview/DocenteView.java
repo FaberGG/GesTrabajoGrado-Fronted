@@ -9,6 +9,7 @@ import co.unicauca.gestiontrabajogrado.domain.dto.submission.FormatoAData;
 import co.unicauca.gestiontrabajogrado.domain.dto.submission.FormatoAView;
 import co.unicauca.gestiontrabajogrado.domain.dto.submission.FormatoAPage;
 import co.unicauca.gestiontrabajogrado.presentation.common.GradientePanel;
+import co.unicauca.gestiontrabajogrado.presentation.common.ToastNotification;
 import java.io.File;
 
 import javax.swing.*;
@@ -91,6 +92,13 @@ public class DocenteView extends JFrame {
         homePanel.btnMenu.addActionListener(this::mostrarMenu);
         homePanel.setOnProyectoClick(this::abrirModalDetalleProyecto);
 
+        // NUEVO: Conectar callbacks para las acciones de los proyectos
+        homePanel.conectarCallbacksProyectos(
+                this::verDetallesProyecto,
+                this::reenviarFormatoAProyecto,
+                this::subirAnteproyectoProyecto
+        );
+
         // Cargar propuestas del docente al iniciar
         SwingUtilities.invokeLater(this::cargarPropuestas);
 
@@ -111,8 +119,6 @@ public class DocenteView extends JFrame {
     public void setOnDescargarPlantilla(Runnable action) { this.onDescargarPlantilla = action; }
     public void setOnLogout(Runnable action) { this.onLogout = action; }
 
-    // Datos reales
-    public void setEstudiantes(List<String> nombres){ homePanel.listEstudiantes.setData(nombres); }
 
     /**
      * Actualiza el avatar con las iniciales del usuario autenticado
@@ -210,61 +216,54 @@ public class DocenteView extends JFrame {
     private void abrirModalDetalleProyecto(PropuestaItem item) {
         if (controller == null) return;
 
-        // Obtener detalle del Formato A
-        controller.obtenerFormatoA(item.id.longValue(),
-                new FormatoAController.DetailCallback() {
+        // NUEVO: Usar tracking service para obtener estado completo del proyecto
+        controller.obtenerEstadoProyecto(item.id.longValue(),
+                new DocenteController.EstadoProyectoCallback() {
                     @Override
-                    public void onSuccess(FormatoAView view) {
+                    public void onSuccess(co.unicauca.gestiontrabajogrado.domain.dto.progress.ProyectoEstadoDTO estado) {
                         SwingUtilities.invokeLater(() -> {
-                            // Construir ProyectoView para el modal
-                            // NOTA: Aquí necesitarías obtener datos adicionales del proyecto
-                            // Por ahora mostramos solo datos del Formato A
+                            // Cargar estado completo en el modal
+                            modalDetalle.cargarEstadoProyecto(estado);
 
-                            modalDetalle.cargarFormatoA(view);
-
-                            modalDetalle.setOnSubmit(() -> {
-                                // Reenviar nueva versión (RF4)
-                                Long proyectoId = view.getProyectoId();
+                            // Configurar callback para reenviar Formato A
+                            modalDetalle.setOnReenviarFormatoA(() -> {
+                                Long proyectoId = estado.getProyectoId();
                                 File nuevoFormatoA = modalDetalle.getNuevoFormatoA();
                                 File nuevaCarta = modalDetalle.getNuevaCarta();
 
                                 controller.reenviarFormatoA(proyectoId, nuevoFormatoA, nuevaCarta,
                                         new FormatoAController.ResultCallback() {
-                                            @Override
-                                            public void onSuccess(String message, Long id) {
-                                                SwingUtilities.invokeLater(() -> {
-                                                    JOptionPane.showMessageDialog(DocenteView.this,
-                                                            message, "Éxito",
-                                                            JOptionPane.INFORMATION_MESSAGE);
-                                                    modalLayer.cerrar();
-                                                    cargarPropuestas(); // Refrescar lista
-                                                });
-                                            }
+                            @Override
+                            public void onSuccess(String message, Long id) {
+                                SwingUtilities.invokeLater(() -> {
+                                    ToastNotification.success("✅ Formato A reenviado exitosamente");
+                                    modalLayer.cerrar();
+                                    cargarPropuestas(); // Refrescar lista
+                                });
+                            }
 
-                                            @Override
-                                            public void onError(String errorMessage) {
-                                                SwingUtilities.invokeLater(() -> {
-                                                    JOptionPane.showMessageDialog(DocenteView.this,
-                                                            errorMessage, "Error",
-                                                            JOptionPane.ERROR_MESSAGE);
-                                                });
-                                            }
+                            @Override
+                            public void onError(String errorMessage) {
+                                SwingUtilities.invokeLater(() -> {
+                                    ToastNotification.error("❌ Error: " + errorMessage);
+                                });
+                            }
                                         });
                             });
 
-                            modalDetalle.setOnCancel(modalLayer::cerrar);
+                            // Configurar callback para cerrar
+                            modalDetalle.setOnCerrar(modalLayer::cerrar);
+
+                            // Mostrar modal con tamaño más grande para mostrar toda la información
                             modalLayer.showModal(modalDetalle, modalDetalle::reset,
-                                    new Dimension(900, 700));
+                                    new Dimension(1200, 800));
                         });
                     }
 
                     @Override
                     public void onError(String errorMessage) {
                         SwingUtilities.invokeLater(() -> {
-                            JOptionPane.showMessageDialog(DocenteView.this,
-                                    "Error al cargar detalle: " + errorMessage,
-                                    "Error",
-                                    JOptionPane.ERROR_MESSAGE);
+                            ToastNotification.error("❌ Error al cargar estado del proyecto: " + errorMessage);
                         });
                     }
                 });
@@ -327,6 +326,15 @@ public class DocenteView extends JFrame {
         modalLayer.showModal(modalSubir, modalSubir::reset, new Dimension(920, 620));
     }
     private void abrirModalSubirAnteproyecto() {
+        abrirModalSubirAnteproyecto(null);
+    }
+
+    private void abrirModalSubirAnteproyecto(Long proyectoIdPrecargado) {
+        // Si se proporciona un ID, precargarlo en el modal
+        if (proyectoIdPrecargado != null) {
+            modalSubirAnteproyecto.setProyectoId(proyectoIdPrecargado);
+        }
+
         modalSubirAnteproyecto.setOnSubmitValid(() -> {
             Long proyectoId = modalSubirAnteproyecto.getProyectoId();
             File archivo = modalSubirAnteproyecto.getArchivoPDF();
@@ -337,24 +345,17 @@ public class DocenteView extends JFrame {
                             @Override
                             public void onSuccess(String message, Long id) {
                                 SwingUtilities.invokeLater(() -> {
-                                    JOptionPane.showMessageDialog(DocenteView.this,
-                                            "✅ Anteproyecto subido exitosamente.\n" +
-                                                    "ID: " + id + "\n\n" +
-                                                    "El anteproyecto está ahora en revisión.",
-                                            "Éxito",
-                                            JOptionPane.INFORMATION_MESSAGE);
+                                    ToastNotification.success("✅ Anteproyecto subido exitosamente");
                                     modalSubirAnteproyecto.limpiar();
                                     modalLayer.cerrar();
+                                    cargarPropuestas(); // Refrescar lista
                                 });
                             }
 
                             @Override
                             public void onError(String errorMessage) {
                                 SwingUtilities.invokeLater(() -> {
-                                    JOptionPane.showMessageDialog(DocenteView.this,
-                                            "❌ Error al subir anteproyecto:\n" + errorMessage,
-                                            "Error",
-                                            JOptionPane.ERROR_MESSAGE);
+                                    ToastNotification.error("❌ Error: " + errorMessage);
                                 });
                             }
                         });
@@ -366,37 +367,133 @@ public class DocenteView extends JFrame {
                 new Dimension(700, 460));
     }
     /**
-     * Carga las propuestas del docente actual
+     * Ver detalles completos de un proyecto usando tracking service
+     */
+    private void verDetallesProyecto(ProyectoItem proyecto) {
+        if (controller == null) return;
+
+        // Usar tracking service para obtener estado completo y mostrar en modal
+        controller.obtenerEstadoProyecto(proyecto.getProyectoId(),
+                new DocenteController.EstadoProyectoCallback() {
+                    @Override
+                    public void onSuccess(co.unicauca.gestiontrabajogrado.domain.dto.progress.ProyectoEstadoDTO estado) {
+                        SwingUtilities.invokeLater(() -> {
+                            // Cargar estado completo en el modal
+                            modalDetalle.cargarEstadoProyecto(estado);
+
+                            // Configurar callback para reenviar Formato A (si aplica)
+                            modalDetalle.setOnReenviarFormatoA(() -> {
+                                Long proyectoId = estado.getProyectoId();
+                                File nuevoFormatoA = modalDetalle.getNuevoFormatoA();
+                                File nuevaCarta = modalDetalle.getNuevaCarta();
+
+                                controller.reenviarFormatoA(proyectoId, nuevoFormatoA, nuevaCarta,
+                                        new FormatoAController.ResultCallback() {
+                                            @Override
+                                            public void onSuccess(String message, Long id) {
+                                                SwingUtilities.invokeLater(() -> {
+                                                    ToastNotification.success("✅ Formato A reenviado exitosamente");
+                                                    modalLayer.cerrar();
+                                                    cargarPropuestas();
+                                                });
+                                            }
+
+                                            @Override
+                                            public void onError(String errorMessage) {
+                                                SwingUtilities.invokeLater(() -> {
+                                                    ToastNotification.error("❌ Error: " + errorMessage);
+                                                });
+                                            }
+                                        });
+                            });
+
+                            // Configurar callback para cerrar
+                            modalDetalle.setOnCerrar(modalLayer::cerrar);
+
+                            // Mostrar modal
+                            modalLayer.showModal(modalDetalle, modalDetalle::reset,
+                                    new Dimension(1200, 800));
+                        });
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        SwingUtilities.invokeLater(() -> {
+                            ToastNotification.error("❌ Error al cargar estado: " + errorMessage);
+                        });
+                    }
+                });
+    }
+
+    /**
+     * Reenviar Formato A para un proyecto rechazado
+     */
+    private void reenviarFormatoAProyecto(ProyectoItem proyecto) {
+        if (controller == null) return;
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "¿Desea reenviar el Formato A para el proyecto:\n" + proyecto.getTitulo() + "?",
+                "Reenviar Formato A",
+                JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            // Abrir modal de subir con el ID del proyecto
+            abrirModalSubir();
+        }
+    }
+
+    /**
+     * Subir anteproyecto para un proyecto con Formato A aprobado
+     */
+    private void subirAnteproyectoProyecto(ProyectoItem proyecto) {
+        if (controller == null) return;
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "¿Desea subir el anteproyecto para el proyecto:\n" + proyecto.getTitulo() + "?",
+                "Subir Anteproyecto",
+                JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            // Abrir modal con el ID precargado
+            abrirModalSubirAnteproyecto(proyecto.getProyectoId());
+        }
+    }
+
+    /**
+     * Carga los proyectos del docente actual usando el tracking service
      */
     private void cargarPropuestas() {
         if (controller == null) return;
 
-        controller.listarMisFormatoA(0, 20, new FormatoAController.ListCallback() {
+        controller.obtenerMisProyectos(new DocenteController.MisProyectosCallback() {
             @Override
-            public void onSuccess(FormatoAPage page) {
+            public void onSuccess(co.unicauca.gestiontrabajogrado.domain.dto.progress.MisProyectosDTO proyectos) {
                 SwingUtilities.invokeLater(() -> {
-                    List<PropuestaItem> items = new ArrayList<>();
+                    List<ProyectoItemRow> items = new ArrayList<>();
 
-                    if (page.getContent() != null) {
-                        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm");
-                        for (FormatoAView view : page.getContent()) {
-                            items.add(new PropuestaItem(
-                                    "Proyecto #" + view.getProyectoId(), // Título temporal
-                                    sdf.format(view.getFechaEnvio()),
-                                    view.getProyectoId().intValue(),
-                                    view.getEstado(),
-                                    view.getVersion()
-                            ));
+                    if (proyectos.getProyectos() != null) {
+                        for (co.unicauca.gestiontrabajogrado.domain.dto.progress.MisProyectosDTO.ProyectoResumenDTO proyecto : proyectos.getProyectos()) {
+                            ProyectoItem item = new ProyectoItem(proyecto);
+                            items.add(new ProyectoItemRow(item));
                         }
                     }
 
-                    homePanel.listPropuestas.setData(items);
+                    homePanel.listPropuestas.setDataProyectos(items);
+
+                    // Actualizar contador
+                    homePanel.actualizarContador(proyectos.getTotal() != null ? proyectos.getTotal() : 0);
                 });
             }
 
             @Override
             public void onError(String errorMessage) {
-                System.err.println("Error al cargar propuestas: " + errorMessage);
+                SwingUtilities.invokeLater(() -> {
+                    System.err.println("Error al cargar proyectos: " + errorMessage);
+                    JOptionPane.showMessageDialog(DocenteView.this,
+                            "Error al cargar proyectos:\n" + errorMessage,
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                });
             }
         });
     }
@@ -411,10 +508,8 @@ public class DocenteView extends JFrame {
         JButton btnMenu;
         JLabel  avatar;
 
-        final CardPanel cardEstudiantes = new CardPanel("Estudiantes Dirigidos");
         final CardPanel cardPropuestas  = new CardPanel("Propuestas");
 
-        final EstudiantesList listEstudiantes = new EstudiantesList();
         final PropuestasList  listPropuestas  = new PropuestasList();
 
         HomePanel() {
@@ -435,21 +530,13 @@ public class DocenteView extends JFrame {
             botones.add(btnNuevaPropuesta);
             botones.add(btnDescargarPlantilla);
 
-            JScrollPane spEst = scrollFor(listEstudiantes);
             JScrollPane spPro = scrollFor(listPropuestas);
-
-            cardEstudiantes.setContent(spEst);
             cardPropuestas.setContent(spPro);
-
-            JPanel grid = new JPanel(new GridLayout(1,2,16,16));
-            grid.setOpaque(false);
-            grid.add(cardEstudiantes);
-            grid.add(cardPropuestas);
 
             JPanel center = new JPanel(new BorderLayout(0,12));
             center.setOpaque(false);
             center.add(botones, BorderLayout.NORTH);
-            center.add(grid, BorderLayout.CENTER);
+            center.add(cardPropuestas, BorderLayout.CENTER);
 
             add(center, BorderLayout.CENTER);
             listPropuestas.setOnProyectoClick(this::onProyectoClick);
@@ -464,6 +551,15 @@ public class DocenteView extends JFrame {
         void setOnProyectoClick(java.util.function.Consumer<PropuestaItem> handler) {
             this.clickHandler = handler;
         }
+
+        void conectarCallbacksProyectos(
+                java.util.function.Consumer<ProyectoItem> onVerDetalles,
+                java.util.function.Consumer<ProyectoItem> onReenviarFormatoA,
+                java.util.function.Consumer<ProyectoItem> onSubirAnteproyecto) {
+            listPropuestas.setOnVerDetalles(onVerDetalles);
+            listPropuestas.setOnReenviarFormatoA(onReenviarFormatoA);
+            listPropuestas.setOnSubirAnteproyecto(onSubirAnteproyecto);
+        }
         private JScrollPane scrollFor(JComponent c){
             JScrollPane sp = new JScrollPane(c);
             sp.setBorder(javax.swing.BorderFactory.createEmptyBorder());
@@ -475,16 +571,21 @@ public class DocenteView extends JFrame {
         void setAvatarText(String initials){
             if (avatar != null) avatar.setText(initials);
         }
+
+        void actualizarContador(int total) {
+            cardPropuestas.setTitulo("Mis Proyectos (" + total + ")");
+        }
     }
 
-    // ====== Panel tarjeta ======
+    // ====== Panel tarjeta con título actualizable ======
     private static class CardPanel extends JPanel {
         private final JLabel header = new JLabel("", SwingConstants.LEFT);
         private final JPanel contentHolder = new JPanel(new BorderLayout());
+
         CardPanel(String titulo){
             setOpaque(false);
             setLayout(new BorderLayout());
-            header.setText(titulo);
+            setTitulo(titulo);
             header.setFont(F_H3);
             header.setBorder(new EmptyBorder(10,14,6,14));
             add(header, BorderLayout.NORTH);
@@ -492,6 +593,11 @@ public class DocenteView extends JFrame {
             contentHolder.setBorder(new EmptyBorder(0,14,14,14));
             add(contentHolder, BorderLayout.CENTER);
         }
+
+        void setTitulo(String titulo) {
+            header.setText(titulo);
+        }
+
         void setContent(JComponent c){
             contentHolder.removeAll();
             CardBody body = new CardBody();
@@ -499,6 +605,7 @@ public class DocenteView extends JFrame {
             body.add(c, BorderLayout.CENTER);
             contentHolder.add(body, BorderLayout.CENTER);
         }
+
         private static class CardBody extends JPanel {
             CardBody(){ setOpaque(false); setBorder(new EmptyBorder(12,12,12,12)); }
             @Override protected void paintComponent(Graphics g) {
@@ -517,6 +624,7 @@ public class DocenteView extends JFrame {
             }
         }
     }
+
 
     // ====== Estudiantes con avatar azul + scroll ======
     private static class EstudiantesList extends JPanel {
@@ -595,6 +703,9 @@ public class DocenteView extends JFrame {
 
     private static class PropuestasList extends JPanel {
         private java.util.function.Consumer<PropuestaItem> onProyectoClick;
+        private java.util.function.Consumer<ProyectoItem> onVerDetalles;
+        private java.util.function.Consumer<ProyectoItem> onReenviarFormatoA;
+        private java.util.function.Consumer<ProyectoItem> onSubirAnteproyecto;
 
         PropuestasList(){
             setOpaque(false);
@@ -603,6 +714,44 @@ public class DocenteView extends JFrame {
 
         void setOnProyectoClick(java.util.function.Consumer<PropuestaItem> callback) {
             this.onProyectoClick = callback;
+        }
+
+        void setOnVerDetalles(java.util.function.Consumer<ProyectoItem> callback) {
+            this.onVerDetalles = callback;
+        }
+
+        void setOnReenviarFormatoA(java.util.function.Consumer<ProyectoItem> callback) {
+            this.onReenviarFormatoA = callback;
+        }
+
+        void setOnSubirAnteproyecto(java.util.function.Consumer<ProyectoItem> callback) {
+            this.onSubirAnteproyecto = callback;
+        }
+
+        void setDataProyectos(List<ProyectoItemRow> items){
+            removeAll();
+            JPanel listPanel = new JPanel();
+            listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
+            listPanel.setOpaque(false);
+
+            if (items != null && !items.isEmpty()) {
+                for (ProyectoItemRow row : items) {
+                    // Conectar callbacks
+                    row.setOnVerDetalles(onVerDetalles);
+                    row.setOnReenviarFormatoA(onReenviarFormatoA);
+                    row.setOnSubirAnteproyecto(onSubirAnteproyecto);
+
+                    listPanel.add(row);
+                }
+            } else {
+                JLabel emptyLabel = new JLabel("No hay proyectos registrados", SwingConstants.CENTER);
+                emptyLabel.setForeground(new Color(120,120,120));
+                emptyLabel.setFont(F_BODY);
+                listPanel.add(emptyLabel);
+            }
+            add(listPanel, BorderLayout.NORTH);
+            revalidate();
+            repaint();
         }
 
         void setData(List<PropuestaItem> items){

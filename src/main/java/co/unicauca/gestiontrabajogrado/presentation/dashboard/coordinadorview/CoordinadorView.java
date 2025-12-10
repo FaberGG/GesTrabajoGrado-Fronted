@@ -65,7 +65,9 @@ public class CoordinadorView extends JFrame {
         root.setBackground(new Color(0xF3, 0xF4, 0xF5));
         setContentPane(root);
 
-        root.add(new HeaderPanel(), BorderLayout.NORTH);
+        // Header con logout configurado
+        HeaderPanel header = new HeaderPanel(() -> handleLogout());
+        root.add(header, BorderLayout.NORTH);
 
         JPanel body = new JPanel(new BorderLayout(0, 16));
         body.setOpaque(false);
@@ -310,15 +312,11 @@ public class CoordinadorView extends JFrame {
             menuPopup.setBackground(new Color(0x2C, 0x6A, 0xA5));
 
             int w = 280;
-            menuPopup.add(menuItem("Evaluar Formato A", w, () -> {
+            // Solo mostrar la opción de Evaluar Formato A (RF3)
+            menuPopup.add(menuItem("📋 Evaluar Formato A", w, () -> {
                 mostrar(CARD_EVALUAR);
                 recargarTabla();
             }));
-            menuPopup.add(menuItem("Asignar Evaluadores", w, () -> info("Acción: Asignar Evaluadores")));
-            menuPopup.add(menuItem("Revisar Solicitud de Sustentación", w, () -> info("Acción: Revisar Solicitud de Sustentación")));
-            menuPopup.add(menuItem("Asignar Jurados", w, () -> info("Acción: Asignar Jurados")));
-            menuPopup.add(menuItem("Asignar Sustentación", w, () -> info("Acción: Asignar Sustentación")));
-            menuPopup.add(menuItem("Consolidar Calificaciones de Jurados", w, () -> info("Acción: Consolidar Calificaciones de Jurados")));
         }
         int x = invoker.getWidth() - menuPopup.getPreferredSize().width;
         int y = invoker.getHeight() + 6;
@@ -491,16 +489,8 @@ public class CoordinadorView extends JFrame {
             return;
         }
 
-        new EvaluarFormatoADialog(
-                this,
-                propuesta.titulo(),
-                propuesta.formatoId(),
-                controller,
-                nuevoEstado -> {
-                    // Refrescar la tabla después de evaluar
-                    cargarPropuestas();
-                }
-        ).setVisible(true);
+        // Obtener proyectoId desde el FormatoA
+        obtenerProyectoIdYMostrarDetalles(propuesta);
     }
 
     private void installActionsColumn() {
@@ -518,18 +508,84 @@ public class CoordinadorView extends JFrame {
         return -1;
     }
 
+    /**
+     * Obtiene el proyectoId desde el FormatoA y muestra el diálogo de detalles
+     */
+    private void obtenerProyectoIdYMostrarDetalles(PropuestaRow propuesta) {
+        // Mostrar indicador de carga
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        SwingWorker<Long, Void> worker = new SwingWorker<>() {
+            @Override
+            protected Long doInBackground() throws Exception {
+                // Obtener el FormatoA completo para extraer el proyectoId
+                co.unicauca.gestiontrabajogrado.domain.dto.submission.FormatoAView formatoA =
+                    controller.obtenerFormatoADetalle(propuesta.formatoId().longValue());
+                return formatoA.getProyectoId();
+            }
+
+            @Override
+            protected void done() {
+                setCursor(Cursor.getDefaultCursor());
+                try {
+                    Long proyectoId = get();
+
+                    if (proyectoId == null) {
+                        info("No se pudo obtener el ID del proyecto asociado al Formato A.");
+                        return;
+                    }
+
+                    // Mostrar diálogo de detalles del proyecto
+                    new DetallesProyectoDialog(
+                            CoordinadorView.this,
+                            proyectoId,
+                            () -> {
+                                // Callback: después de ver detalles, abrir diálogo de evaluación
+                                new EvaluarFormatoADialog(
+                                        CoordinadorView.this,
+                                        propuesta.titulo(),
+                                        propuesta.formatoId(),
+                                        controller,
+                                        nuevoEstado -> cargarPropuestas()
+                                ).setVisible(true);
+                            }
+                    ).setVisible(true);
+
+                } catch (Exception e) {
+                    info("Error al obtener información del proyecto:\n" + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+        };
+        worker.execute();
+    }
+
     private void ejecutarAccion(int viewRow) {
         if (viewRow < 0) return;
         int modelRow = table.convertRowIndexToModel(viewRow);
         PropuestaRow propuesta = ((CoordinadorTableModel) table.getModel()).getRow(modelRow);
 
         if ("PENDIENTE".equalsIgnoreCase(propuesta.estado())) {
-            new EvaluarFormatoADialog(
+            // Verificar que tenga proyectoId
+            if (propuesta.proyectoId() == null) {
+                info("No se puede obtener los detalles de este proyecto.");
+                return;
+            }
+
+            // Primero mostrar detalles del proyecto usando tracking service
+            new DetallesProyectoDialog(
                     this,
-                    propuesta.titulo(),
-                    propuesta.formatoId(),
-                    controller,
-                    nuevoEstado -> cargarPropuestas()
+                    propuesta.proyectoId(),
+                    () -> {
+                        // Callback: después de ver detalles, abrir diálogo de evaluación
+                        new EvaluarFormatoADialog(
+                                this,
+                                propuesta.titulo(),
+                                propuesta.formatoId(),
+                                controller,
+                                nuevoEstado -> cargarPropuestas()
+                        ).setVisible(true);
+                    }
             ).setVisible(true);
         } else {
             // Mostrar información de que ya fue evaluado
@@ -539,6 +595,15 @@ public class CoordinadorView extends JFrame {
 
     private void mostrar(String card) {
         cards.show(cardPanel, card);
+    }
+
+    /**
+     * Maneja el cierre de sesión del coordinador
+     */
+    private void handleLogout() {
+        if (controller != null) {
+            controller.handleCerrarSesion();
+        }
     }
 
     private void info(String msg) {

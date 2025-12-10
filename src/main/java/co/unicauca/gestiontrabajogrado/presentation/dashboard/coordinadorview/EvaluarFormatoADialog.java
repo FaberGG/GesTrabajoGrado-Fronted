@@ -1,10 +1,12 @@
 package co.unicauca.gestiontrabajogrado.presentation.dashboard.coordinadorview;
 
 import co.unicauca.gestiontrabajogrado.application.controllers.CoordinadorController;
+import co.unicauca.gestiontrabajogrado.presentation.common.ToastNotification;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.KeyEvent;
 import java.util.function.Consumer;
 
 /**
@@ -35,6 +37,7 @@ public class EvaluarFormatoADialog extends JDialog {
         setSize(920, 560);
         setLocationRelativeTo(parent);
         setResizable(false);
+        setupKeyboardShortcuts();
     }
 
     // ============================================================
@@ -200,21 +203,36 @@ public class EvaluarFormatoADialog extends JDialog {
     }
 
     private void mostrarError(String mensaje) {
-        JOptionPane.showMessageDialog(
-                this,
-                mensaje,
-                "Error",
-                JOptionPane.WARNING_MESSAGE
-        );
+        ToastNotification.error(mensaje);
     }
 
     private void mostrarExito(String mensaje) {
-        JOptionPane.showMessageDialog(
-                this,
-                mensaje,
-                "Evaluación Guardada",
-                JOptionPane.INFORMATION_MESSAGE
-        );
+        ToastNotification.success(mensaje);
+    }
+
+    /**
+     * Configura atajos de teclado para mejor UX
+     */
+    private void setupKeyboardShortcuts() {
+        // ESC para cerrar
+        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+            .put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close");
+        getRootPane().getActionMap().put("close", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                dispose();
+            }
+        });
+
+        // Ctrl+S para guardar
+        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+            .put(KeyStroke.getKeyStroke(KeyEvent.VK_S, KeyEvent.CTRL_DOWN_MASK), "save");
+        getRootPane().getActionMap().put("save", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                onGuardar();
+            }
+        });
     }
 
     // ============================================================

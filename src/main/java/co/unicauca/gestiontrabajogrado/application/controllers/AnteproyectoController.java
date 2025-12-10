@@ -45,6 +45,7 @@ public class AnteproyectoController {
         SwingWorker<Long, Void> worker = new SwingWorker<Long, Void>() {
             @Override
             protected Long doInBackground() throws Exception {
+                System.out.println("📤 Iniciando subida de Anteproyecto para proyecto " + proyectoId + "...");
                 return submissionService.subirAnteproyecto(proyectoId, pdfFile);
             }
 
@@ -52,9 +53,12 @@ public class AnteproyectoController {
             protected void done() {
                 try {
                     Long id = get();
-                    callback.onSuccess("Anteproyecto subido exitosamente con ID: " + id, id);
+                    System.out.println("✅ Anteproyecto subido exitosamente en el controller con ID: " + id);
+                    callback.onSuccess("Anteproyecto subido exitosamente", id);
                 } catch (Exception e) {
                     String errorMsg = extractErrorMessage(e);
+                    System.err.println("❌ Error en controller al subir anteproyecto: " + errorMsg);
+                    e.printStackTrace();
                     callback.onError("Error al subir anteproyecto: " + errorMsg);
                 }
             }

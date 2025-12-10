@@ -189,6 +189,20 @@ public class SubirAnteproyectoModal extends JPanel {
         }
     }
 
+    /**
+     * Establece el ID del proyecto en el campo de texto
+     * Útil para precargar el ID cuando se abre el modal desde un proyecto específico
+     */
+    public void setProyectoId(Long proyectoId) {
+        if (proyectoId != null) {
+            tfProyectoId.setText(String.valueOf(proyectoId));
+            tfProyectoId.setEditable(false); // Bloquear edición si viene precargado
+        } else {
+            tfProyectoId.setText("");
+            tfProyectoId.setEditable(true);
+        }
+    }
+
     public File getArchivoPDF() {
         return dfPDF.getFile();
     }

@@ -57,49 +57,90 @@ public class SubmissionService {
             throw new IllegalArgumentException("El archivo PDF es obligatorio");
         }
 
-        // Preparar datos JSON
-        String dataJson = gson.toJson(data);
-        Map<String, String> fields = new HashMap<>();
-        fields.put("data", dataJson);
+        // Validar archivo PDF
+        String errorPdf = validarArchivoPDF(pdfFile);
+        if (errorPdf != null) {
+            throw new IllegalArgumentException(errorPdf);
+        }
 
-        // Preparar archivos
-        List<GatewayHttpClient.MultipartFile> files = new ArrayList<>();
+        // Validar carta si es necesaria
+        if (data.getModalidad() == FormatoAData.Modalidad.PRACTICA_PROFESIONAL) {
+            if (cartaFile == null || !cartaFile.exists()) {
+                throw new IllegalArgumentException("La carta de aceptación es obligatoria para Práctica Profesional");
+            }
+            String errorCarta = validarArchivoPDF(cartaFile);
+            if (errorCarta != null) {
+                throw new IllegalArgumentException("Carta de aceptación: " + errorCarta);
+            }
+        }
 
-        // Archivo PDF (obligatorio)
-        byte[] pdfBytes = Files.readAllBytes(pdfFile.toPath());
-        files.add(new GatewayHttpClient.MultipartFile(
-                "pdf",
-                pdfFile.getName(),
-                pdfBytes,
-                "application/pdf"
-        ));
+        try {
+            // Preparar datos JSON
+            String dataJson = gson.toJson(data);
+            Map<String, String> fields = new HashMap<>();
+            fields.put("data", dataJson);
 
-        // Carta (opcional, obligatoria para PRACTICA_PROFESIONAL)
-        if (cartaFile != null && cartaFile.exists()) {
-            byte[] cartaBytes = Files.readAllBytes(cartaFile.toPath());
+            // Preparar archivos
+            List<GatewayHttpClient.MultipartFile> files = new ArrayList<>();
+
+            // Archivo PDF (obligatorio)
+            byte[] pdfBytes = Files.readAllBytes(pdfFile.toPath());
             files.add(new GatewayHttpClient.MultipartFile(
-                    "carta",
-                    cartaFile.getName(),
-                    cartaBytes,
+                    "pdf",
+                    pdfFile.getName(),
+                    pdfBytes,
                     "application/pdf"
             ));
+
+            // Carta (opcional, obligatoria para PRACTICA_PROFESIONAL)
+            if (cartaFile != null && cartaFile.exists()) {
+                byte[] cartaBytes = Files.readAllBytes(cartaFile.toPath());
+                files.add(new GatewayHttpClient.MultipartFile(
+                        "carta",
+                        cartaFile.getName(),
+                        cartaBytes,
+                        "application/pdf"
+                ));
+            }
+
+            // Enviar petición
+            String token = sessionManager.getToken();
+
+            System.out.println("🔍 DEBUG - Enviando Formato A:");
+            System.out.println("   Título: " + data.getTitulo());
+            System.out.println("   Modalidad: " + data.getModalidad());
+            System.out.println("   Director ID: " + data.getDirectorId());
+            System.out.println("   Estudiante 1 ID: " + data.getEstudiante1Id());
+            System.out.println("   Estudiante 2 ID: " + data.getEstudiante2Id());
+            System.out.println("   Archivo PDF: " + pdfFile.getName() + " (" + pdfFile.length() + " bytes)");
+            if (cartaFile != null) {
+                System.out.println("   Carta: " + cartaFile.getName() + " (" + cartaFile.length() + " bytes)");
+            }
+
+            IdResponse response = httpClient.postMultipartWithFiles(
+                    "/api/submissions/formatoA",
+                    fields,
+                    files,
+                    IdResponse.class,
+                    token
+            );
+
+            if (response == null || response.getId() == null) {
+                throw new NetworkException("Respuesta inválida del servidor");
+            }
+
+            System.out.println("✅ Formato A creado exitosamente con ID: " + response.getId());
+            return response.getId();
+
+        } catch (IOException e) {
+            System.err.println("❌ Error de IO al crear Formato A: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        } catch (Exception e) {
+            System.err.println("❌ Error inesperado al crear Formato A: " + e.getMessage());
+            e.printStackTrace();
+            throw new NetworkException("Error al crear Formato A: " + e.getMessage());
         }
-
-        // Enviar petición
-        String token = sessionManager.getToken();
-        IdResponse response = httpClient.postMultipartWithFiles(
-                "/api/submissions/formatoA",
-                fields,
-                files,
-                IdResponse.class,
-                token
-        );
-
-        if (response == null || response.getId() == null) {
-            throw new NetworkException("Respuesta inválida del servidor");
-        }
-
-        return response.getId();
     }
 
     // ==================== RF4: Reenviar Formato A ====================
@@ -125,41 +166,74 @@ public class SubmissionService {
             throw new IllegalArgumentException("El archivo PDF es obligatorio");
         }
 
-        // Preparar archivos
-        List<GatewayHttpClient.MultipartFile> files = new ArrayList<>();
+        // Validar archivo PDF
+        String errorPdf = validarArchivoPDF(pdfFile);
+        if (errorPdf != null) {
+            throw new IllegalArgumentException(errorPdf);
+        }
 
-        byte[] pdfBytes = Files.readAllBytes(pdfFile.toPath());
-        files.add(new GatewayHttpClient.MultipartFile(
-                "pdf",
-                pdfFile.getName(),
-                pdfBytes,
-                "application/pdf"
-        ));
-
+        // Validar carta si existe
         if (cartaFile != null && cartaFile.exists()) {
-            byte[] cartaBytes = Files.readAllBytes(cartaFile.toPath());
+            String errorCarta = validarArchivoPDF(cartaFile);
+            if (errorCarta != null) {
+                throw new IllegalArgumentException("Carta de aceptación: " + errorCarta);
+            }
+        }
+
+        try {
+            // Preparar archivos
+            List<GatewayHttpClient.MultipartFile> files = new ArrayList<>();
+
+            byte[] pdfBytes = Files.readAllBytes(pdfFile.toPath());
             files.add(new GatewayHttpClient.MultipartFile(
-                    "carta",
-                    cartaFile.getName(),
-                    cartaBytes,
+                    "pdf",
+                    pdfFile.getName(),
+                    pdfBytes,
                     "application/pdf"
             ));
+
+            if (cartaFile != null && cartaFile.exists()) {
+                byte[] cartaBytes = Files.readAllBytes(cartaFile.toPath());
+                files.add(new GatewayHttpClient.MultipartFile(
+                        "carta",
+                        cartaFile.getName(),
+                        cartaBytes,
+                        "application/pdf"
+                ));
+            }
+
+            System.out.println("🔍 DEBUG - Reenviando Formato A:");
+            System.out.println("   Proyecto ID: " + proyectoId);
+            System.out.println("   Archivo PDF: " + pdfFile.getName() + " (" + pdfFile.length() + " bytes)");
+            if (cartaFile != null) {
+                System.out.println("   Carta: " + cartaFile.getName() + " (" + cartaFile.length() + " bytes)");
+            }
+
+            String token = sessionManager.getToken();
+            IdResponse response = httpClient.postMultipartWithFiles(
+                    "/api/submissions/formatoA/" + proyectoId + "/nueva-version",
+                    null, // sin campos adicionales
+                    files,
+                    IdResponse.class,
+                    token
+            );
+
+            if (response == null || response.getId() == null) {
+                throw new NetworkException("Respuesta inválida del servidor");
+            }
+
+            System.out.println("✅ Nueva versión de Formato A creada exitosamente con ID: " + response.getId());
+            return response.getId();
+            
+        } catch (IOException e) {
+            System.err.println("❌ Error de IO al reenviar Formato A: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        } catch (Exception e) {
+            System.err.println("❌ Error inesperado al reenviar Formato A: " + e.getMessage());
+            e.printStackTrace();
+            throw new NetworkException("Error al reenviar Formato A: " + e.getMessage());
         }
-
-        String token = sessionManager.getToken();
-        IdResponse response = httpClient.postMultipartWithFiles(
-                "/api/submissions/formatoA/" + proyectoId + "/nueva-version",
-                null, // sin campos adicionales
-                files,
-                IdResponse.class,
-                token
-        );
-
-        if (response == null || response.getId() == null) {
-            throw new NetworkException("Respuesta inválida del servidor");
-        }
-
-        return response.getId();
     }
 
     // ==================== RF6: Subir Anteproyecto ====================
@@ -186,37 +260,53 @@ public class SubmissionService {
             throw new IllegalArgumentException(errorPdf);
         }
 
-        // Preparar datos
-        AnteproyectoData data = new AnteproyectoData(proyectoId);
-        String dataJson = gson.toJson(data);
+        try {
+            // Preparar datos
+            AnteproyectoData data = new AnteproyectoData(proyectoId);
+            String dataJson = gson.toJson(data);
 
-        Map<String, String> fields = new HashMap<>();
-        fields.put("data", dataJson);
+            Map<String, String> fields = new HashMap<>();
+            fields.put("data", dataJson);
 
-        // Preparar archivo
-        byte[] pdfBytes = Files.readAllBytes(pdfFile.toPath());
-        List<GatewayHttpClient.MultipartFile> files = new ArrayList<>();
-        files.add(new GatewayHttpClient.MultipartFile(
-                "pdf",
-                pdfFile.getName(),
-                pdfBytes,
-                "application/pdf"
-        ));
+            // Preparar archivo
+            byte[] pdfBytes = Files.readAllBytes(pdfFile.toPath());
+            List<GatewayHttpClient.MultipartFile> files = new ArrayList<>();
+            files.add(new GatewayHttpClient.MultipartFile(
+                    "pdf",
+                    pdfFile.getName(),
+                    pdfBytes,
+                    "application/pdf"
+            ));
 
-        String token = sessionManager.getToken();
-        IdResponse response = httpClient.postMultipartWithFiles(
-                "/api/submissions/anteproyecto",
-                fields,
-                files,
-                IdResponse.class,
-                token
-        );
+            System.out.println("🔍 DEBUG - Subiendo Anteproyecto:");
+            System.out.println("   Proyecto ID: " + proyectoId);
+            System.out.println("   Archivo PDF: " + pdfFile.getName() + " (" + pdfFile.length() + " bytes)");
 
-        if (response == null || response.getId() == null) {
-            throw new NetworkException("Respuesta inválida del servidor");
+            String token = sessionManager.getToken();
+            IdResponse response = httpClient.postMultipartWithFiles(
+                    "/api/submissions/anteproyecto",
+                    fields,
+                    files,
+                    IdResponse.class,
+                    token
+            );
+
+            if (response == null || response.getId() == null) {
+                throw new NetworkException("Respuesta inválida del servidor");
+            }
+
+            System.out.println("✅ Anteproyecto subido exitosamente con ID: " + response.getId());
+            return response.getId();
+
+        } catch (IOException e) {
+            System.err.println("❌ Error de IO al subir Anteproyecto: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        } catch (Exception e) {
+            System.err.println("❌ Error inesperado al subir Anteproyecto: " + e.getMessage());
+            e.printStackTrace();
+            throw new NetworkException("Error al subir Anteproyecto: " + e.getMessage());
         }
-
-        return response.getId();
     }
 
     // ==================== Consultas ====================

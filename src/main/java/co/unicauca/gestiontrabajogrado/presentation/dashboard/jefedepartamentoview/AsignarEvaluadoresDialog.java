@@ -1,14 +1,12 @@
 package co.unicauca.gestiontrabajogrado.presentation.dashboard.jefedepartamentoview;
 
 import co.unicauca.gestiontrabajogrado.application.controllers.JefeDepartamentoController;
-import co.unicauca.gestiontrabajogrado.domain.dto.review.EvaluadorDTO;
 import co.unicauca.gestiontrabajogrado.presentation.common.RoundedButton;
 import co.unicauca.gestiontrabajogrado.presentation.common.RoundedPanel;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.util.List;
 
 /**
  * Diálogo para asignar evaluadores a un anteproyecto (RF7)
@@ -21,8 +19,8 @@ public class AsignarEvaluadoresDialog extends JDialog {
     private final AnteproyectoRow anteproyecto;
     private final JefeDepartamentoController controller;
 
-    private JComboBox<EvaluadorDTO> comboEvaluador1;
-    private JComboBox<EvaluadorDTO> comboEvaluador2;
+    private JTextField txtEvaluador1Id;
+    private JTextField txtEvaluador2Id;
     private JTextArea txtObservaciones;
 
     public AsignarEvaluadoresDialog(JFrame parent,
@@ -34,31 +32,43 @@ public class AsignarEvaluadoresDialog extends JDialog {
 
         configurarDialogo();
         construirUI();
-        cargarEvaluadores();
     }
 
     private void configurarDialogo() {
-        setSize(900, 650);
+        setSize(900, 680);  // Aumentado ligeramente para mejor visualización
         setLocationRelativeTo(getParent());
-        setResizable(false);
+        setResizable(true);  // Cambiado a true para permitir redimensionar
         setLayout(new BorderLayout());
         getContentPane().setBackground(Color.WHITE);
     }
 
     private void construirUI() {
-        // Header rojo con gradiente
+        // Header rojo con gradiente (fijo arriba, sin scroll)
         add(crearHeader(), BorderLayout.NORTH);
 
-        // Contenido principal
+        // Contenido principal CON SCROLL
         JPanel contentPanel = new JPanel(new BorderLayout(0, 20));
         contentPanel.setBackground(Color.WHITE);
         contentPanel.setBorder(new EmptyBorder(30, 40, 30, 40));
 
         contentPanel.add(crearPanelInfo(), BorderLayout.NORTH);
         contentPanel.add(crearPanelFormulario(), BorderLayout.CENTER);
-        contentPanel.add(crearPanelBotones(), BorderLayout.SOUTH);
 
-        add(contentPanel, BorderLayout.CENTER);
+        // IMPORTANTE: Envolver contentPanel en JScrollPane
+        JScrollPane scrollPane = new JScrollPane(contentPanel);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16); // Scroll suave
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.getViewport().setBackground(Color.WHITE);
+
+        // Panel de botones (fijo abajo, sin scroll)
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.setBackground(Color.WHITE);
+        bottomPanel.setBorder(new EmptyBorder(15, 40, 20, 40));
+        bottomPanel.add(crearPanelBotones(), BorderLayout.CENTER);
+
+        add(scrollPane, BorderLayout.CENTER);
+        add(bottomPanel, BorderLayout.SOUTH);
     }
 
     private JPanel crearHeader() {
@@ -133,37 +143,45 @@ public class AsignarEvaluadoresDialog extends JDialog {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.anchor = GridBagConstraints.WEST;
 
-        // Evaluador 1
+        // Evaluador 1 ID
         gbc.gridx = 0;
         gbc.gridy = 0;
-        panel.add(crearLabel("Evaluador 1 *:"), gbc);
+        panel.add(crearLabel("ID Evaluador 1 *:"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
-        comboEvaluador1 = crearComboEvaluadores();
-        panel.add(comboEvaluador1, gbc);
+        txtEvaluador1Id = crearCampoTexto("Ej: 1");
+        panel.add(txtEvaluador1Id, gbc);
 
-        // Evaluador 2
+        // Evaluador 2 ID
         gbc.gridx = 0;
         gbc.gridy++;
         gbc.weightx = 0;
-        panel.add(crearLabel("Evaluador 2 *:"), gbc);
+        panel.add(crearLabel("ID Evaluador 2 *:"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
-        comboEvaluador2 = crearComboEvaluadores();
-        panel.add(comboEvaluador2, gbc);
+        txtEvaluador2Id = crearCampoTexto("Ej: 2");
+        panel.add(txtEvaluador2Id, gbc);
 
-        // Observaciones
+        // Nota informativa
         gbc.gridx = 0;
         gbc.gridy++;
         gbc.gridwidth = 2;
-        gbc.insets = new Insets(20, 10, 10, 10);
+        gbc.insets = new Insets(5, 10, 15, 10);
+        JLabel lblInfo = new JLabel("💡 Ingrese los IDs numéricos de los docentes evaluadores");
+        lblInfo.setFont(new Font("SansSerif", Font.ITALIC, 12));
+        lblInfo.setForeground(new Color(100, 100, 100));
+        panel.add(lblInfo, gbc);
+
+        // Observaciones
+        gbc.gridy++;
+        gbc.insets = new Insets(15, 10, 10, 10);
         panel.add(crearLabel("Observaciones (opcional):"), gbc);
 
         gbc.gridy++;
         gbc.insets = new Insets(5, 10, 10, 10);
-        txtObservaciones = new JTextArea(6, 40);
+        txtObservaciones = new JTextArea(4, 40);
         txtObservaciones.setLineWrap(true);
         txtObservaciones.setWrapStyleWord(true);
         txtObservaciones.setFont(new Font("SansSerif", Font.PLAIN, 14));
@@ -173,7 +191,7 @@ public class AsignarEvaluadoresDialog extends JDialog {
         ));
 
         JScrollPane scroll = new JScrollPane(txtObservaciones);
-        scroll.setPreferredSize(new Dimension(700, 150));
+        scroll.setPreferredSize(new Dimension(700, 120));
         panel.add(scroll, gbc);
 
         return panel;
@@ -215,80 +233,75 @@ public class AsignarEvaluadoresDialog extends JDialog {
         return label;
     }
 
-    private JComboBox<EvaluadorDTO> crearComboEvaluadores() {
-        JComboBox<EvaluadorDTO> combo = new JComboBox<>();
-        combo.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        combo.setPreferredSize(new Dimension(500, 40));
-        combo.setBorder(BorderFactory.createCompoundBorder(
+    private JTextField crearCampoTexto(String placeholder) {
+        JTextField textField = new JTextField();
+        textField.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        textField.setPreferredSize(new Dimension(500, 40));
+        textField.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(206, 212, 218), 1),
-                new EmptyBorder(5, 10, 5, 10)
+                new EmptyBorder(8, 12, 8, 12)
         ));
 
-        // Agregar item por defecto
-        combo.addItem(null); // Representará "Seleccione..."
+        // Agregar placeholder visual
+        textField.setForeground(Color.GRAY);
+        textField.setText(placeholder);
 
-        return combo;
+        textField.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                if (textField.getText().equals(placeholder)) {
+                    textField.setText("");
+                    textField.setForeground(Color.BLACK);
+                }
+            }
+            public void focusLost(java.awt.event.FocusEvent evt) {
+                if (textField.getText().isEmpty()) {
+                    textField.setForeground(Color.GRAY);
+                    textField.setText(placeholder);
+                }
+            }
+        });
+
+        return textField;
     }
 
     // ====== Lógica ======
 
-    private void cargarEvaluadores() {
-        if (controller == null) return;
-
-        // Ejecutar en background
-        SwingWorker<List<EvaluadorDTO>, Void> worker = new SwingWorker<>() {
-            @Override
-            protected List<EvaluadorDTO> doInBackground() {
-                return controller.obtenerEvaluadores();
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    List<EvaluadorDTO> evaluadores = get();
-
-                    // Limpiar combos
-                    comboEvaluador1.removeAllItems();
-                    comboEvaluador2.removeAllItems();
-
-                    // Agregar placeholder
-                    comboEvaluador1.addItem(null);
-                    comboEvaluador2.addItem(null);
-
-                    // Agregar evaluadores
-                    for (EvaluadorDTO eval : evaluadores) {
-                        comboEvaluador1.addItem(eval);
-                        comboEvaluador2.addItem(eval);
-                    }
-
-                    // Configurar renderer personalizado
-                    ComboBoxRenderer renderer = new ComboBoxRenderer();
-                    comboEvaluador1.setRenderer(renderer);
-                    comboEvaluador2.setRenderer(renderer);
-
-                } catch (Exception e) {
-                    JOptionPane.showMessageDialog(AsignarEvaluadoresDialog.this,
-                            "Error al cargar evaluadores: " + e.getMessage(),
-                            "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        };
-        worker.execute();
-    }
-
     private void asignarEvaluadores() {
-        // Validaciones
-        EvaluadorDTO eval1 = (EvaluadorDTO) comboEvaluador1.getSelectedItem();
-        EvaluadorDTO eval2 = (EvaluadorDTO) comboEvaluador2.getSelectedItem();
+        // Obtener valores de los campos
+        String eval1Text = txtEvaluador1Id.getText().trim();
+        String eval2Text = txtEvaluador2Id.getText().trim();
 
-        if (eval1 == null || eval2 == null) {
+        // Validar que no estén vacíos o sean placeholders
+        if (eval1Text.isEmpty() || eval1Text.startsWith("Ej:") ||
+                eval2Text.isEmpty() || eval2Text.startsWith("Ej:")) {
             JOptionPane.showMessageDialog(this,
-                    "Debe seleccionar 2 evaluadores",
+                    "Debe ingresar ambos IDs de evaluadores",
                     "Validación", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        if (eval1.getId().equals(eval2.getId())) {
+        // Validar que sean números
+        int eval1Id, eval2Id;
+        try {
+            eval1Id = Integer.parseInt(eval1Text);
+            eval2Id = Integer.parseInt(eval2Text);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Los IDs deben ser números válidos",
+                    "Validación", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Validar que sean positivos
+        if (eval1Id <= 0 || eval2Id <= 0) {
+            JOptionPane.showMessageDialog(this,
+                    "Los IDs deben ser números positivos",
+                    "Validación", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Validar que sean diferentes
+        if (eval1Id == eval2Id) {
             JOptionPane.showMessageDialog(this,
                     "Los evaluadores deben ser diferentes",
                     "Validación", JOptionPane.WARNING_MESSAGE);
@@ -298,8 +311,8 @@ public class AsignarEvaluadoresDialog extends JDialog {
         // Confirmar
         int confirm = JOptionPane.showConfirmDialog(this,
                 "¿Está seguro de asignar estos evaluadores?\n\n" +
-                        "Evaluador 1: " + eval1.getNombreCompleto() + "\n" +
-                        "Evaluador 2: " + eval2.getNombreCompleto() + "\n\n" +
+                        "ID Evaluador 1: " + eval1Id + "\n" +
+                        "ID Evaluador 2: " + eval2Id + "\n\n" +
                         "El anteproyecto cambiará a estado 'EN_EVALUACION'",
                 "Confirmar Asignación",
                 JOptionPane.YES_NO_OPTION,
@@ -312,8 +325,8 @@ public class AsignarEvaluadoresDialog extends JDialog {
         // Asignar usando el callback pattern
         controller.asignarEvaluadores(
                 anteproyecto.anteproyectoId(),
-                eval1.getId().intValue(),
-                eval2.getId().intValue(),
+                eval1Id,
+                eval2Id,
                 new JefeDepartamentoController.ResultCallback() {
                     @Override
                     public void onSuccess(String message) {
@@ -335,24 +348,4 @@ public class AsignarEvaluadoresDialog extends JDialog {
         );
     }
 
-    /**
-     * Renderer personalizado para mostrar "Seleccione..." cuando es null
-     */
-    private static class ComboBoxRenderer extends DefaultListCellRenderer {
-        @Override
-        public Component getListCellRendererComponent(JList<?> list, Object value,
-                                                      int index, boolean isSelected, boolean cellHasFocus) {
-            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-
-            if (value == null) {
-                setText("Seleccione un evaluador...");
-                setForeground(Color.GRAY);
-            } else if (value instanceof EvaluadorDTO) {
-                setText(value.toString());
-                setForeground(Color.BLACK);
-            }
-
-            return this;
-        }
-    }
 }
