@@ -155,7 +155,7 @@ public class SubirPropuestaModal extends JPanel {
         data.setObjetivosEspecificos(objetivos);
 
         // IDs de participantes
-        data.setDirectorId(parseIdSafelyLong(tfDirId));
+        // NO incluir directorId - el backend lo toma del usuario autenticado (token JWT)
         data.setCodirectorId(parseIdSafelyLong(tfCoDirId));
         data.setEstudiante1Id(parseIdSafelyLong(tfEstudiante1Id));
         data.setEstudiante2Id(parseIdSafelyLong(tfEstudiante2Id));

@@ -28,6 +28,9 @@ public class DetallesProyectoDialog extends JDialog {
 
     public DetallesProyectoDialog(JFrame parent, Long proyectoId, Runnable onEvaluarCallback) {
         super(parent, "Detalles del Proyecto", true);
+        System.out.println("🔍 DEBUG DetallesProyectoDialog - Constructor:");
+        System.out.println("   - ProyectoId recibido: " + proyectoId);
+
         this.proyectoId = proyectoId;
         this.trackingService = new ProgressTrackingService();
         this.onEvaluarCallback = onEvaluarCallback;
@@ -45,6 +48,9 @@ public class DetallesProyectoDialog extends JDialog {
     }
 
     private void cargarDetallesProyecto() {
+        System.out.println("🔍 DEBUG DetallesProyectoDialog - cargarDetallesProyecto:");
+        System.out.println("   - Cargando proyecto con ID: " + proyectoId);
+
         // Mostrar loading
         JPanel loadingPanel = crearPanelCargando();
         add(loadingPanel, BorderLayout.CENTER);
@@ -55,15 +61,22 @@ public class DetallesProyectoDialog extends JDialog {
         SwingWorker<ProyectoEstadoDTO, Void> worker = new SwingWorker<>() {
             @Override
             protected ProyectoEstadoDTO doInBackground() throws Exception {
-                return trackingService.obtenerEstadoProyecto(proyectoId);
+                System.out.println("🔍 DEBUG DetallesProyectoDialog - Llamando al servicio...");
+                ProyectoEstadoDTO estado = trackingService.obtenerEstadoProyecto(proyectoId);
+                System.out.println("✅ DEBUG DetallesProyectoDialog - Estado obtenido:");
+                System.out.println("   - Título: " + (estado != null ? estado.getTitulo() : "NULL"));
+                return estado;
             }
 
             @Override
             protected void done() {
                 try {
                     proyectoEstado = get();
+                    System.out.println("✅ DEBUG DetallesProyectoDialog - Construyendo UI");
                     construirUI();
                 } catch (Exception e) {
+                    System.err.println("❌ DEBUG DetallesProyectoDialog - Error:");
+                    e.printStackTrace();
                     mostrarError("Error al cargar detalles del proyecto: " + e.getMessage());
                 }
             }

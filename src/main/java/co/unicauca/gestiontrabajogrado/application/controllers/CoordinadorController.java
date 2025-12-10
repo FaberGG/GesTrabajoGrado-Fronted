@@ -17,6 +17,12 @@ import java.util.stream.Collectors;
 /**
  * Controlador de aplicación para el Coordinador
  * Implementa RF3: Coordinador evalúa Formato A
+ *
+ * IMPORTANTE: En el modelo de datos del backend:
+ * - El ID del FormatoA ES el mismo que el ID del Proyecto
+ * - formatoAId = proyectoId (son el mismo valor)
+ * - Esto permite acceder directamente a los detalles del proyecto
+ *   usando el formatoAId sin necesidad de consultas adicionales
  */
 public class CoordinadorController {
 
@@ -73,11 +79,25 @@ public class CoordinadorController {
      */
     public co.unicauca.gestiontrabajogrado.domain.dto.submission.FormatoAView obtenerFormatoADetalle(Long formatoAId)
             throws NetworkException {
+        System.out.println("🔍 DEBUG COORDINADOR - obtenerFormatoADetalle:");
+        System.out.println("   - FormatoAId: " + formatoAId);
+
         try {
             co.unicauca.gestiontrabajogrado.infrastructure.services.SubmissionService submissionService =
                 new co.unicauca.gestiontrabajogrado.infrastructure.services.SubmissionService();
-            return submissionService.obtenerFormatoA(formatoAId);
+
+            co.unicauca.gestiontrabajogrado.domain.dto.submission.FormatoAView formatoA =
+                submissionService.obtenerFormatoA(formatoAId);
+
+            System.out.println("✅ DEBUG COORDINADOR - FormatoA obtenido:");
+            System.out.println("   - ProyectoId: " + formatoA.getProyectoId());
+            System.out.println("   - Estado: " + formatoA.getEstado());
+            System.out.println("   - Version: " + formatoA.getVersion());
+
+            return formatoA;
         } catch (java.io.IOException | InterruptedException e) {
+            System.err.println("❌ DEBUG COORDINADOR - Error al obtener FormatoA: " + e.getMessage());
+            e.printStackTrace();
             throw new NetworkException("Error al obtener detalles del Formato A: " + e.getMessage(), e);
         }
     }
@@ -226,7 +246,13 @@ public class CoordinadorController {
      * Mapea FormatoAReviewDTO a PropuestaRow para la tabla
      */
     private PropuestaRow mapToRow(FormatoAReviewDTO dto) {
-        return new PropuestaRow(
+        System.out.println("🔍 DEBUG COORDINADOR - Mapeando FormatoAReviewDTO:");
+        System.out.println("   - FormatoAId: " + dto.getFormatoAId());
+        System.out.println("   - ProyectoId: " + dto.getProyectoId());
+        System.out.println("   - Título: " + dto.getTitulo());
+        System.out.println("   - Director: " + dto.getDocenteDirectorNombre());
+
+        PropuestaRow row = new PropuestaRow(
                 dto.getFormatoAId() != null ? dto.getFormatoAId().intValue() : null,
                 dto.getProyectoId(), // Ahora incluimos el proyectoId para poder ver detalles
                 dto.getTitulo() != null ? dto.getTitulo() : "Sin título",
@@ -234,6 +260,9 @@ public class CoordinadorController {
                 dto.getFechaCarga(),
                 "PENDIENTE" // El estado siempre es pendiente para los que están en la lista
         );
+
+        System.out.println("   ✅ PropuestaRow creado con proyectoId: " + row.proyectoId());
+        return row;
     }
 
     /**

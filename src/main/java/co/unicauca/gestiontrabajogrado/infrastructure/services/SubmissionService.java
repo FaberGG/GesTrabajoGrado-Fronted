@@ -106,16 +106,20 @@ public class SubmissionService {
             // Enviar petición
             String token = sessionManager.getToken();
 
-            System.out.println("🔍 DEBUG - Enviando Formato A:");
+            System.out.println("🔍 DEBUG SubmissionService - Enviando Formato A:");
             System.out.println("   Título: " + data.getTitulo());
             System.out.println("   Modalidad: " + data.getModalidad());
-            System.out.println("   Director ID: " + data.getDirectorId());
+            System.out.println("   Objetivo General: " + data.getObjetivoGeneral());
+            System.out.println("   Objetivos Específicos: " + data.getObjetivosEspecificos());
+            System.out.println("   Codirector ID: " + data.getCodirectorId());
             System.out.println("   Estudiante 1 ID: " + data.getEstudiante1Id());
             System.out.println("   Estudiante 2 ID: " + data.getEstudiante2Id());
             System.out.println("   Archivo PDF: " + pdfFile.getName() + " (" + pdfFile.length() + " bytes)");
             if (cartaFile != null) {
                 System.out.println("   Carta: " + cartaFile.getName() + " (" + cartaFile.length() + " bytes)");
             }
+            System.out.println("   ℹ️ El directorId NO se envía - el backend lo extrae del token JWT");
+            System.out.println("   📤 JSON a enviar: " + dataJson);
 
             IdResponse response = httpClient.postMultipartWithFiles(
                     "/api/submissions/formatoA",
@@ -240,10 +244,14 @@ public class SubmissionService {
 
     /**
      * Sube el anteproyecto (RF6)
-     * POST /api/submissions/anteproyecto
+     * POST /api/submissions/anteproyecto/{proyectoId}
      *
-     * @param proyectoId ID del proyecto
-     * @param pdfFile Archivo PDF del anteproyecto
+     * IMPORTANTE: Este endpoint SOLO recibe el archivo PDF en form-data.
+     * El proyectoId va en la URL como path parameter, NO en el body.
+     * No se envía ningún JSON de datos adicionales.
+     *
+     * @param proyectoId ID del proyecto (va en la URL)
+     * @param pdfFile Archivo PDF del anteproyecto (único campo en form-data)
      * @return ID del anteproyecto creado
      */
     public Long subirAnteproyecto(Long proyectoId, File pdfFile)
@@ -261,12 +269,8 @@ public class SubmissionService {
         }
 
         try {
-            // Preparar datos
-            AnteproyectoData data = new AnteproyectoData(proyectoId);
-            String dataJson = gson.toJson(data);
-
-            Map<String, String> fields = new HashMap<>();
-            fields.put("data", dataJson);
+            // NO enviar datos JSON - solo el archivo PDF
+            // El proyectoId va en la URL como path parameter
 
             // Preparar archivo
             byte[] pdfBytes = Files.readAllBytes(pdfFile.toPath());
@@ -278,14 +282,20 @@ public class SubmissionService {
                     "application/pdf"
             ));
 
-            System.out.println("🔍 DEBUG - Subiendo Anteproyecto:");
-            System.out.println("   Proyecto ID: " + proyectoId);
+            System.out.println("🔍 DEBUG SubmissionService - Subiendo Anteproyecto:");
+            System.out.println("   Método: POST");
+            System.out.println("   URL: /api/submissions/anteproyecto/" + proyectoId);
+            System.out.println("   Proyecto ID (en URL): " + proyectoId);
             System.out.println("   Archivo PDF: " + pdfFile.getName() + " (" + pdfFile.length() + " bytes)");
+            System.out.println("   ℹ️ NOTA: Solo se envía el PDF, sin datos JSON adicionales");
 
             String token = sessionManager.getToken();
+
+            // POST /api/submissions/anteproyecto/{proyectoId}
+            // Solo con el archivo PDF en form-data (sin campos adicionales)
             IdResponse response = httpClient.postMultipartWithFiles(
-                    "/api/submissions/anteproyecto",
-                    fields,
+                    "/api/submissions/anteproyecto/" + proyectoId,
+                    new HashMap<>(), // Sin campos de texto adicionales
                     files,
                     IdResponse.class,
                     token
@@ -318,6 +328,10 @@ public class SubmissionService {
     public FormatoAView obtenerFormatoA(Long id)
             throws IOException, InterruptedException, NetworkException {
 
+        System.out.println("🔍 DEBUG SubmissionService - obtenerFormatoA:");
+        System.out.println("   - FormatoAId: " + id);
+        System.out.println("   - URL: " + apiConfig.getApiGatewayUrl() + "/api/submissions/formatoA/" + id);
+
         if (id == null || id <= 0) {
             throw new IllegalArgumentException("ID inválido");
         }
@@ -328,6 +342,17 @@ public class SubmissionService {
                 FormatoAView.class,
                 token
         );
+
+        System.out.println("✅ DEBUG SubmissionService - FormatoA recibido:");
+        System.out.println("   - Id: " + (response != null ? response.getId() : "NULL"));
+        System.out.println("   - ProyectoId: " + (response != null ? response.getProyectoId() : "NULL"));
+        System.out.println("   - Estado: " + (response != null ? response.getEstado() : "NULL"));
+        System.out.println("   - Version: " + (response != null ? response.getVersion() : "NULL"));
+
+        if (response != null && response.getProyectoId() == null) {
+            System.err.println("⚠️ ADVERTENCIA: El backend devolvió un FormatoA sin proyectoId!");
+            System.err.println("   Esto puede indicar un problema en el backend o en los datos");
+        }
 
         return response;
     }

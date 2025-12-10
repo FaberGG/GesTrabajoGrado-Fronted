@@ -489,8 +489,36 @@ public class CoordinadorView extends JFrame {
             return;
         }
 
-        // Obtener proyectoId desde el FormatoA
-        obtenerProyectoIdYMostrarDetalles(propuesta);
+        // IMPORTANTE: El formatoAId ES el proyectoId (son el mismo ID)
+        // Usar directamente el formatoAId como proyectoId
+        Long proyectoId = propuesta.formatoId() != null ? propuesta.formatoId().longValue() : null;
+
+        if (proyectoId == null) {
+            info("Error: No se puede identificar el proyecto asociado a este Formato A.");
+            return;
+        }
+
+        // Mostrar detalles del proyecto
+        try {
+            new DetallesProyectoDialog(
+                    this,
+                    proyectoId,
+                    () -> {
+                        // Callback: después de ver detalles, abrir diálogo de evaluación
+                        new EvaluarFormatoADialog(
+                                this,
+                                propuesta.titulo(),
+                                propuesta.formatoId(),
+                                controller,
+                                nuevoEstado -> cargarPropuestas()
+                        ).setVisible(true);
+                    }
+            ).setVisible(true);
+        } catch (Exception e) {
+            System.err.println("❌ Error al abrir diálogo de evaluación:");
+            e.printStackTrace();
+            info("Error al cargar detalles del proyecto: " + e.getMessage());
+        }
     }
 
     private void installActionsColumn() {
@@ -509,73 +537,30 @@ public class CoordinadorView extends JFrame {
     }
 
     /**
-     * Obtiene el proyectoId desde el FormatoA y muestra el diálogo de detalles
+     * IMPORTANTE: El formatoAId ES el proyectoId (son el mismo ID)
+     * Este método ya no es necesario, pero se mantiene por compatibilidad
      */
     private void obtenerProyectoIdYMostrarDetalles(PropuestaRow propuesta) {
-        // Mostrar indicador de carga
-        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        System.out.println("🔍 DEBUG - obtenerProyectoIdYMostrarDetalles iniciado");
+        System.out.println("   - FormatoId: " + propuesta.formatoId());
+        System.out.println("   ℹ️ NOTA: formatoAId = proyectoId (son el mismo)");
 
-        SwingWorker<Long, Void> worker = new SwingWorker<>() {
-            @Override
-            protected Long doInBackground() throws Exception {
-                // Obtener el FormatoA completo para extraer el proyectoId
-                co.unicauca.gestiontrabajogrado.domain.dto.submission.FormatoAView formatoA =
-                    controller.obtenerFormatoADetalle(propuesta.formatoId().longValue());
-                return formatoA.getProyectoId();
-            }
+        // El formatoAId ES el proyectoId
+        Long proyectoId = propuesta.formatoId() != null ? propuesta.formatoId().longValue() : null;
 
-            @Override
-            protected void done() {
-                setCursor(Cursor.getDefaultCursor());
-                try {
-                    Long proyectoId = get();
+        if (proyectoId == null) {
+            System.err.println("❌ DEBUG - FormatoAId es NULL, no se puede continuar");
+            info("Error: No se puede identificar el proyecto asociado a este Formato A.");
+            return;
+        }
 
-                    if (proyectoId == null) {
-                        info("No se pudo obtener el ID del proyecto asociado al Formato A.");
-                        return;
-                    }
+        System.out.println("✅ DEBUG - Usando formatoAId como proyectoId: " + proyectoId);
 
-                    // Mostrar diálogo de detalles del proyecto
-                    new DetallesProyectoDialog(
-                            CoordinadorView.this,
-                            proyectoId,
-                            () -> {
-                                // Callback: después de ver detalles, abrir diálogo de evaluación
-                                new EvaluarFormatoADialog(
-                                        CoordinadorView.this,
-                                        propuesta.titulo(),
-                                        propuesta.formatoId(),
-                                        controller,
-                                        nuevoEstado -> cargarPropuestas()
-                                ).setVisible(true);
-                            }
-                    ).setVisible(true);
-
-                } catch (Exception e) {
-                    info("Error al obtener información del proyecto:\n" + e.getMessage());
-                    e.printStackTrace();
-                }
-            }
-        };
-        worker.execute();
-    }
-
-    private void ejecutarAccion(int viewRow) {
-        if (viewRow < 0) return;
-        int modelRow = table.convertRowIndexToModel(viewRow);
-        PropuestaRow propuesta = ((CoordinadorTableModel) table.getModel()).getRow(modelRow);
-
-        if ("PENDIENTE".equalsIgnoreCase(propuesta.estado())) {
-            // Verificar que tenga proyectoId
-            if (propuesta.proyectoId() == null) {
-                info("No se puede obtener los detalles de este proyecto.");
-                return;
-            }
-
-            // Primero mostrar detalles del proyecto usando tracking service
+        // Mostrar diálogo de detalles del proyecto
+        try {
             new DetallesProyectoDialog(
                     this,
-                    propuesta.proyectoId(),
+                    proyectoId,
                     () -> {
                         // Callback: después de ver detalles, abrir diálogo de evaluación
                         new EvaluarFormatoADialog(
@@ -587,6 +572,104 @@ public class CoordinadorView extends JFrame {
                         ).setVisible(true);
                     }
             ).setVisible(true);
+        } catch (Exception e) {
+            System.err.println("❌ DEBUG - Error al mostrar detalles del proyecto:");
+            e.printStackTrace();
+
+            // Ofrecer evaluar sin detalles en caso de error
+            int opcion = JOptionPane.showConfirmDialog(
+                    this,
+                    "❌ Error al cargar detalles del proyecto:\n" +
+                    e.getMessage() + "\n\n" +
+                    "¿Deseas evaluar este Formato A de todas formas?",
+                    "Error",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.ERROR_MESSAGE
+            );
+
+            if (opcion == JOptionPane.YES_OPTION) {
+                new EvaluarFormatoADialog(
+                        this,
+                        propuesta.titulo(),
+                        propuesta.formatoId(),
+                        controller,
+                        nuevoEstado -> cargarPropuestas()
+                ).setVisible(true);
+            }
+        }
+    }
+
+    private void ejecutarAccion(int viewRow) {
+        if (viewRow < 0) return;
+        int modelRow = table.convertRowIndexToModel(viewRow);
+        PropuestaRow propuesta = ((CoordinadorTableModel) table.getModel()).getRow(modelRow);
+
+        System.out.println("🔍 DEBUG COORDINADOR VIEW - Ejecutar acción:");
+        System.out.println("   - FormatoId: " + propuesta.formatoId());
+        System.out.println("   - ProyectoId en DTO: " + propuesta.proyectoId());
+        System.out.println("   - Título: " + propuesta.titulo());
+        System.out.println("   - Estado: " + propuesta.estado());
+
+        if ("PENDIENTE".equalsIgnoreCase(propuesta.estado())) {
+            // IMPORTANTE: El formatoAId ES el proyectoId (son el mismo ID)
+            Long proyectoId = propuesta.proyectoId();
+
+            // Si proyectoId es null en el DTO, usar formatoAId como fallback
+            if (proyectoId == null && propuesta.formatoId() != null) {
+                proyectoId = propuesta.formatoId().longValue();
+                System.out.println("⚠️ DEBUG - ProyectoId era null, usando formatoAId como proyectoId: " + proyectoId);
+            }
+
+            if (proyectoId == null) {
+                System.err.println("❌ DEBUG - No se puede determinar el proyectoId");
+                info("Error: No se puede identificar el proyecto asociado a este Formato A.");
+                return;
+            }
+
+            System.out.println("✅ DEBUG COORDINADOR VIEW - Usando proyectoId: " + proyectoId);
+
+            // Mostrar detalles del proyecto usando tracking service
+            try {
+                final Long finalProyectoId = proyectoId;
+                new DetallesProyectoDialog(
+                        this,
+                        finalProyectoId,
+                        () -> {
+                            // Callback: después de ver detalles, abrir diálogo de evaluación
+                            new EvaluarFormatoADialog(
+                                    this,
+                                    propuesta.titulo(),
+                                    propuesta.formatoId(),
+                                    controller,
+                                    nuevoEstado -> cargarPropuestas()
+                            ).setVisible(true);
+                        }
+                ).setVisible(true);
+            } catch (Exception e) {
+                System.err.println("❌ DEBUG - Error al mostrar detalles del proyecto:");
+                e.printStackTrace();
+
+                // Si falla, ofrecer evaluar sin detalles
+                int opcion = JOptionPane.showConfirmDialog(
+                        this,
+                        "❌ Error al cargar detalles del proyecto:\n" +
+                        e.getMessage() + "\n\n" +
+                        "¿Deseas evaluar este Formato A de todas formas?",
+                        "Error",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.ERROR_MESSAGE
+                );
+
+                if (opcion == JOptionPane.YES_OPTION) {
+                    new EvaluarFormatoADialog(
+                            this,
+                            propuesta.titulo(),
+                            propuesta.formatoId(),
+                            controller,
+                            nuevoEstado -> cargarPropuestas()
+                    ).setVisible(true);
+                }
+            }
         } else {
             // Mostrar información de que ya fue evaluado
             info("Este Formato A ya ha sido evaluado.\nEstado: " + propuesta.estado());

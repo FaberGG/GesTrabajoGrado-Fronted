@@ -42,6 +42,10 @@ public class ProgressTrackingService {
      * @throws NetworkException Si hay error de red o el proyecto no existe
      */
     public ProyectoEstadoDTO obtenerEstadoProyecto(Long proyectoId) throws NetworkException {
+        System.out.println("🔍 DEBUG ProgressTrackingService - obtenerEstadoProyecto:");
+        System.out.println("   - ProyectoId: " + proyectoId);
+        System.out.println("   - URL: " + baseUrl + "/api/progress/proyectos/" + proyectoId + "/estado");
+
         Request.Builder requestBuilder = new Request.Builder()
                 .url(baseUrl + "/api/progress/proyectos/" + proyectoId + "/estado")
                 .get();
@@ -49,13 +53,19 @@ public class ProgressTrackingService {
         // Agregar token si está autenticado
         if (sessionManager.isAuthenticated() && sessionManager.getToken() != null) {
             requestBuilder.header("Authorization", "Bearer " + sessionManager.getToken());
+            System.out.println("   - Token agregado: Presente");
+        } else {
+            System.out.println("   - Token agregado: NO");
         }
 
         Request request = requestBuilder.build();
 
         try (Response response = httpClient.newCall(request).execute()) {
+            System.out.println("   - Código de respuesta: " + response.code());
+
             if (!response.isSuccessful()) {
                 String errorMsg = response.body() != null ? response.body().string() : "Error desconocido";
+                System.err.println("❌ DEBUG ProgressTrackingService - Error: " + errorMsg);
 
                 if (response.code() == 404) {
                     throw new NetworkException("Proyecto no encontrado (ID: " + proyectoId + ")");
@@ -67,15 +77,26 @@ public class ProgressTrackingService {
             }
 
             String responseBody = response.body().string();
+            System.out.println("   - Response body (primeros 200 chars): " +
+                (responseBody.length() > 200 ? responseBody.substring(0, 200) + "..." : responseBody));
+
             ProyectoEstadoDTO estadoDTO = gson.fromJson(responseBody, ProyectoEstadoDTO.class);
 
             if (estadoDTO == null) {
+                System.err.println("❌ DEBUG ProgressTrackingService - EstadoDTO es NULL!");
                 throw new NetworkException("Respuesta inválida del servidor (estado null)");
             }
+
+            System.out.println("✅ DEBUG ProgressTrackingService - EstadoDTO obtenido:");
+            System.out.println("   - ProyectoId: " + estadoDTO.getProyectoId());
+            System.out.println("   - Título: " + estadoDTO.getTitulo());
+            System.out.println("   - Estado: " + estadoDTO.getEstadoLegible());
 
             return estadoDTO;
 
         } catch (IOException e) {
+            System.err.println("❌ DEBUG ProgressTrackingService - IOException: " + e.getMessage());
+            e.printStackTrace();
             throw new NetworkException("Fallo en la conexión al servicio de seguimiento.", e);
         }
     }

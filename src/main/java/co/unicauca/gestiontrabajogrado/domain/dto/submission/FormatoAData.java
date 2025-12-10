@@ -5,6 +5,10 @@ import java.util.List;
 /**
  * DTO para crear Formato A (parte data del multipart)
  * Alineado con el backend FormatoAController
+ *
+ * IMPORTANTE: El directorId NO se envía en el request.
+ * El backend lo toma automáticamente del usuario autenticado (token JWT).
+ * El docente que crea el FormatoA se convierte automáticamente en el director.
  */
 public class FormatoAData {
 
@@ -12,7 +16,7 @@ public class FormatoAData {
     private Modalidad modalidad;
     private String objetivoGeneral;
     private List<String> objetivosEspecificos;
-    private Long directorId;
+    // NO incluir directorId - el backend lo toma del usuario autenticado
     private Long codirectorId;
     private Long estudiante1Id;
     private Long estudiante2Id;
@@ -21,13 +25,12 @@ public class FormatoAData {
     }
 
     public FormatoAData(String titulo, Modalidad modalidad, String objetivoGeneral,
-                        List<String> objetivosEspecificos, Long directorId,
+                        List<String> objetivosEspecificos,
                         Long codirectorId, Long estudiante1Id, Long estudiante2Id) {
         this.titulo = titulo;
         this.modalidad = modalidad;
         this.objetivoGeneral = objetivoGeneral;
         this.objetivosEspecificos = objetivosEspecificos;
-        this.directorId = directorId;
         this.codirectorId = codirectorId;
         this.estudiante1Id = estudiante1Id;
         this.estudiante2Id = estudiante2Id;
@@ -66,13 +69,6 @@ public class FormatoAData {
         this.objetivosEspecificos = objetivosEspecificos;
     }
 
-    public Long getDirectorId() {
-        return directorId;
-    }
-
-    public void setDirectorId(Long directorId) {
-        this.directorId = directorId;
-    }
 
     public Long getCodirectorId() {
         return codirectorId;

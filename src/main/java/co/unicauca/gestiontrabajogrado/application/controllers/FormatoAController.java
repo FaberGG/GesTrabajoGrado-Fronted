@@ -292,9 +292,7 @@ public class FormatoAController {
             return "Debe especificar al menos un objetivo específico";
         }
 
-        if (data.getDirectorId() == null) {
-            return "Debe seleccionar un director";
-        }
+        // NO validar directorId - el backend lo toma del usuario autenticado (token JWT)
 
         if (data.getEstudiante1Id() == null) {
             return "Debe seleccionar al menos un estudiante";

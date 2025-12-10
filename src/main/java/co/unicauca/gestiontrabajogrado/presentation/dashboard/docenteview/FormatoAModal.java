@@ -27,7 +27,7 @@ public class FormatoAModal extends JDialog {
     private JComboBox<String> cmbModalidad;
     private JTextArea txtObjetivoGeneral;
     private JTextArea txtObjetivosEspecificos;
-    private JComboBox<String> cmbDirector;
+    // NO incluir combo de Director - el docente autenticado es automáticamente el director
     private JComboBox<String> cmbCodirector;
     private JComboBox<String> cmbEstudiante1;
     private JComboBox<String> cmbEstudiante2;
@@ -77,7 +77,7 @@ public class FormatoAModal extends JDialog {
 
         // Combos
         cmbModalidad = new JComboBox<>(new String[]{"INVESTIGACION", "PRACTICA_PROFESIONAL"});
-        cmbDirector = new JComboBox<>();
+        // NO inicializar cmbDirector - el docente autenticado es automáticamente el director
         cmbCodirector = new JComboBox<>();
         cmbEstudiante1 = new JComboBox<>();
         cmbEstudiante2 = new JComboBox<>();
@@ -101,7 +101,7 @@ public class FormatoAModal extends JDialog {
             cmbModalidad.setEnabled(false);
             txtObjetivoGeneral.setEnabled(false);
             txtObjetivosEspecificos.setEnabled(false);
-            cmbDirector.setEnabled(false);
+            // No incluir cmbDirector - no existe
             cmbCodirector.setEnabled(false);
             cmbEstudiante1.setEnabled(false);
             cmbEstudiante2.setEnabled(false);
@@ -127,10 +127,10 @@ public class FormatoAModal extends JDialog {
             formPanel.add(createFieldPanel("Modalidad *", cmbModalidad));
             formPanel.add(createFieldPanel("Objetivo General *", new JScrollPane(txtObjetivoGeneral)));
             formPanel.add(createFieldPanel("Objetivos Específicos * (uno por línea)", new JScrollPane(txtObjetivosEspecificos)));
-            formPanel.add(createFieldPanel("Director *", cmbDirector));
-            formPanel.add(createFieldPanel("Codirector", cmbCodirector));
+            // NO incluir campo Director - el docente autenticado es automáticamente el director
+            formPanel.add(createFieldPanel("Codirector (opcional)", cmbCodirector));
             formPanel.add(createFieldPanel("Estudiante 1 *", cmbEstudiante1));
-            formPanel.add(createFieldPanel("Estudiante 2", cmbEstudiante2));
+            formPanel.add(createFieldPanel("Estudiante 2 (opcional)", cmbEstudiante2));
         }
 
         // Campos de archivos (siempre visibles)
@@ -195,10 +195,21 @@ public class FormatoAModal extends JDialog {
         data.setModalidad(getModalidadSeleccionada());
         data.setObjetivoGeneral(txtObjetivoGeneral.getText().trim());
         data.setObjetivosEspecificos(parseObjetivosEspecificos());
-        data.setDirectorId(getIdFromCombo(cmbDirector));
+        // NO incluir directorId - el backend lo toma del usuario autenticado (token JWT)
         data.setCodirectorId(getIdFromCombo(cmbCodirector));
         data.setEstudiante1Id(getIdFromCombo(cmbEstudiante1));
         data.setEstudiante2Id(getIdFromCombo(cmbEstudiante2));
+
+        // Debug: mostrar los datos que se van a enviar
+        System.out.println("🔍 DEBUG FormatoAModal - Datos del formulario:");
+        System.out.println("   Título: " + data.getTitulo());
+        System.out.println("   Modalidad: " + data.getModalidad());
+        System.out.println("   Objetivo General: " + data.getObjetivoGeneral());
+        System.out.println("   Objetivos Específicos: " + data.getObjetivosEspecificos());
+        System.out.println("   Codirector ID: " + data.getCodirectorId());
+        System.out.println("   Estudiante 1 ID: " + data.getEstudiante1Id());
+        System.out.println("   Estudiante 2 ID: " + data.getEstudiante2Id());
+        System.out.println("   ℹ️ NOTA: El directorId NO se envía - el backend lo toma del token JWT");
 
         // Validar datos
         String validationError = controller.validarDatos(data);
@@ -318,10 +329,8 @@ public class FormatoAModal extends JDialog {
     }
 
     private void cargarDatosIniciales() {
-        // En producción, estos datos vendrían de servicios
-        cmbDirector.addItem("-- Seleccione --");
-        cmbDirector.addItem("1 - Dr. Juan Pérez");
-        cmbDirector.addItem("2 - Dra. María García");
+        // En producción, estos datos vendrían de servicios (Identity Service)
+        // NO cargar combo de Director - el docente autenticado es automáticamente el director
 
         cmbCodirector.addItem("-- Sin codirector --");
         cmbCodirector.addItem("1 - Dr. Juan Pérez");

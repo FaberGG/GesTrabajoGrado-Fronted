@@ -289,6 +289,97 @@ public class GatewayHttpClient {
     }
 
     /**
+     * Realiza una petición PUT con multipart/form-data (archivos)
+     * Similar a postMultipartWithFiles pero con método PUT
+     *
+     * @param path Ruta relativa del endpoint
+     * @param fields Campos de texto (key-value)
+     * @param files Lista de archivos a enviar
+     * @param responseType Tipo de la respuesta esperada
+     * @param bearerToken Token JWT para autorización
+     * @return La respuesta parseada al tipo especificado
+     */
+    public <T> T putMultipartWithFiles(String path, Map<String, String> fields,
+                                       java.util.List<MultipartFile> files,
+                                       Class<T> responseType, String bearerToken)
+            throws IOException, InterruptedException {
+
+        String boundary = "----Boundary" + UUID.randomUUID().toString().replaceAll("-", "");
+
+        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+
+        // Agregar campos de texto
+        if (fields != null && !fields.isEmpty()) {
+            for (Map.Entry<String, String> entry : fields.entrySet()) {
+                baos.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
+                baos.write(("Content-Disposition: form-data; name=\"" + entry.getKey() + "\"\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+                baos.write(entry.getValue().getBytes(StandardCharsets.UTF_8));
+                baos.write("\r\n".getBytes(StandardCharsets.UTF_8));
+            }
+        }
+
+        // Agregar archivos
+        if (files != null) {
+            for (MultipartFile file : files) {
+                baos.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
+                baos.write(("Content-Disposition: form-data; name=\"" + file.getFieldName() +
+                           "\"; filename=\"" + file.getFilename() + "\"\r\n").getBytes(StandardCharsets.UTF_8));
+                baos.write(("Content-Type: " + file.getMimeType() + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+                baos.write(file.getContent());
+                baos.write("\r\n".getBytes(StandardCharsets.UTF_8));
+            }
+        }
+
+        // Cerrar boundary
+        baos.write(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
+
+        byte[] bodyBytes = baos.toByteArray();
+
+        // DEBUG: Log del tamaño
+        System.out.println("🔍 DEBUG MULTIPART PUT - URL: " + baseUrl + path);
+        System.out.println("🔍 DEBUG MULTIPART PUT - Tamaño total: " + bodyBytes.length + " bytes (" + (bodyBytes.length / 1024) + " KB)");
+        if (files != null) {
+            for (MultipartFile file : files) {
+                System.out.println("🔍 DEBUG MULTIPART PUT - Archivo: " + file.getFilename() + " (" + file.getContent().length + " bytes)");
+            }
+        }
+        System.out.println("🔍 DEBUG MULTIPART PUT - Campos de texto: " + (fields != null ? fields.size() : 0));
+
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + path))
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .header("Accept", "application/json")
+                .PUT(HttpRequest.BodyPublishers.ofByteArray(bodyBytes))  // PUT en lugar de POST
+                .timeout(Duration.ofSeconds(120));
+
+        if (bearerToken != null && !bearerToken.isEmpty()) {
+            requestBuilder.header("Authorization", "Bearer " + bearerToken);
+        }
+
+        HttpRequest request = requestBuilder.build();
+
+        System.out.println("🔍 DEBUG MULTIPART PUT - Enviando petición PUT...");
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println("🔍 DEBUG MULTIPART PUT - Versión HTTP: " + response.version());
+        System.out.println("🔍 DEBUG MULTIPART PUT - Código respuesta: " + response.statusCode());
+
+        if (response.statusCode() >= 200 && response.statusCode() < 300) {
+            if (responseType == Void.class || response.body() == null || response.body().isEmpty()) {
+                return null;
+            }
+            try {
+                System.out.println("🔍 DEBUG MULTIPART PUT - Response body: " + response.body());
+                return gson.fromJson(response.body(), responseType);
+            } catch (JsonSyntaxException e) {
+                throw new IOException("Error al parsear respuesta JSON: " + e.getMessage(), e);
+            }
+        } else {
+            handleErrorResponse(response);
+            return null;
+        }
+    }
+
+    /**
      * Maneja respuestas de error HTTP
      */
     private void handleErrorResponse(HttpResponse<String> response) throws IOException {
